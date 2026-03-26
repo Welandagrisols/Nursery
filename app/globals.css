@@ -1,0 +1,706 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+    --primary: 142 76% 36%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 210 40% 96%;
+    --secondary-foreground: 222.2 84% 4.9%;
+    --muted: 210 40% 96%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 210 40% 96%;
+    --accent-foreground: 222.2 84% 4.9%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 142 76% 36%;
+    --radius: 0.75rem;
+  }
+
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 142.1 70.6% 45.3%;
+    --primary-foreground: 144.9 80.4% 10%;
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 142.4 71.8% 29.2%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+    font-size: 16px;
+    line-height: 1.6;
+    background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 50%, #cbd5e1 100%);
+    transition: background 0.3s ease;
+  }
+
+  .dark body {
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
+  }
+
+  /* ── Touch-first global rules ── */
+
+  /* Prevent accidental text selection while tapping */
+  button, [role="button"] {
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+  }
+
+  /* Make sure every interactive element is finger-friendly on touch devices */
+  @media (pointer: coarse) {
+    button, [role="button"], a, select, input[type="checkbox"], input[type="radio"] {
+      min-height: 44px;
+    }
+
+    /* Larger form inputs on touch */
+    input:not([type="checkbox"]):not([type="radio"]),
+    select,
+    textarea {
+      font-size: 16px; /* prevents iOS auto-zoom */
+      min-height: 48px;
+    }
+
+    /* Cards that act as buttons should show feedback */
+    .touch-card {
+      transition: transform 0.1s ease, box-shadow 0.1s ease;
+    }
+    .touch-card:active {
+      transform: scale(0.97);
+      box-shadow: 0 1px 6px rgba(0,0,0,0.15);
+    }
+  }
+
+  /* Mobile-optimized typography */
+  @media (max-width: 640px) {
+    body {
+      font-size: 16px;
+      font-weight: 500;
+    }
+
+    h1 {
+      font-size: 1.75rem;
+      font-weight: 700;
+      line-height: 1.3;
+    }
+
+    h2 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      line-height: 1.3;
+    }
+
+    h3 {
+      font-size: 1.375rem;
+      font-weight: 600;
+      line-height: 1.3;
+    }
+
+    h4 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      line-height: 1.3;
+    }
+
+    p {
+      font-size: 16px;
+      font-weight: 500;
+      line-height: 1.5;
+    }
+
+    label {
+      font-size: 16px;
+      font-weight: 600;
+    }
+
+    button {
+      font-size: 16px;
+      font-weight: 600;
+    }
+
+    /* Ensure numbers are larger and bolder on mobile */
+    .text-xs, .text-sm {
+      font-size: 1rem !important;
+      font-weight: 500 !important;
+    }
+
+    /* Make sure all form elements are touch-friendly */
+    input, select, textarea {
+      min-height: 48px;
+      font-size: 16px !important;
+      font-weight: 500;
+    }
+
+    /* Tables and data displays */
+    table {
+      font-size: 16px;
+      font-weight: 500;
+    }
+
+    /* Badge and small elements */
+    .badge, .text-muted-foreground {
+      font-size: 14px !important;
+      font-weight: 600 !important;
+    }
+
+    /* Alerts and notifications */
+    .alert-title {
+      font-size: 16px !important;
+      font-weight: 600 !important;
+    }
+
+    .alert-description {
+      font-size: 15px !important;
+      font-weight: 500 !important;
+    }
+
+    /* Dialog and modal content */
+    .dialog-title {
+      font-size: 18px !important;
+      font-weight: 700 !important;
+    }
+
+    .dialog-description {
+      font-size: 16px !important;
+      font-weight: 500 !important;
+    }
+
+    /* Tabs */
+    .tabs-trigger {
+      font-size: 16px !important;
+      font-weight: 600 !important;
+      min-height: 44px !important;
+    }
+
+    /* Navigation and sidebar text */
+    .nav-text {
+      font-size: 16px !important;
+      font-weight: 600 !important;
+    }
+
+    /* Sidebar navigation improvements */
+    [data-sidebar="menu-button"] {
+      font-size: 16px !important;
+      font-weight: 700 !important;
+      min-height: 48px !important;
+      padding: 12px 16px !important;
+    }
+
+    [data-sidebar="menu-button"] svg {
+      width: 20px !important;
+      height: 20px !important;
+    }
+  }
+
+  /* Tablet and up */
+  @media (min-width: 641px) {
+    body {
+      font-size: 15px;
+    }
+  }
+
+  /* Desktop */
+  @media (min-width: 1024px) {
+    body {
+      font-size: 16px;
+    }
+  }
+}
+
+@layer components {
+  /* Mobile-first card optimization */
+  .mobile-optimized-grid {
+    display: grid;
+    gap: 0.75rem;
+    grid-template-columns: 1fr;
+  }
+
+  @media (min-width: 640px) {
+    .mobile-optimized-grid {
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1rem;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .mobile-optimized-grid {
+      grid-template-columns: repeat(3, 1fr);
+    }
+  }
+
+  @media (min-width: 1280px) {
+    .mobile-optimized-grid {
+      grid-template-columns: repeat(4, 1fr);
+    }
+  }
+
+  .mobile-card {
+    width: 100%;
+    max-width: none;
+  }
+
+  /* Mobile typography utilities */
+  .mobile-text-xs { font-size: 0.9375rem; font-weight: 500; line-height: 1.4; }
+  .mobile-text-sm { font-size: 1rem; font-weight: 500; line-height: 1.4; }
+  .mobile-text-base { font-size: 1.125rem; font-weight: 500; line-height: 1.5; }
+  .mobile-text-lg { font-size: 1.25rem; font-weight: 600; line-height: 1.5; }
+  .mobile-text-xl { font-size: 1.5rem; font-weight: 600; line-height: 1.4; }
+
+  @media (min-width: 640px) {
+    .mobile-text-xs { font-size: 0.75rem; }
+    .mobile-text-sm { font-size: 0.875rem; }
+    .mobile-text-base { font-size: 1rem; }
+    .mobile-text-lg { font-size: 1.125rem; }
+    .mobile-text-xl { font-size: 1.25rem; }
+  }
+
+  @media (min-width: 1024px) {
+    .mobile-text-xs { font-size: 0.75rem; }
+    .mobile-text-sm { font-size: 0.875rem; }
+    .mobile-text-base { font-size: 1rem; }
+    .mobile-text-lg { font-size: 1.125rem; }
+    .mobile-text-xl { font-size: 1.25rem; }
+  }
+
+  /* Button text optimization */
+  .btn-mobile {
+    font-size: 1.125rem;
+    font-weight: 600;
+    letter-spacing: 0.025em;
+    line-height: 1.4;
+    padding: 0.75rem 1.5rem;
+  }
+
+  @media (min-width: 640px) {
+    .btn-mobile {
+      font-size: 1rem;
+      padding: 0.625rem 1rem;
+    }
+  }
+
+  /* Form input optimization */
+  .input-mobile {
+    font-size: 1.125rem; /* Prevents zoom on iOS */
+    font-weight: 500;
+    line-height: 1.4;
+    padding: 0.75rem;
+  }
+
+  @media (min-width: 640px) {
+    .input-mobile {
+      font-size: 1rem;
+      padding: 0.5rem;
+    }
+  }
+
+  /* Card content optimization */
+  .card-mobile {
+    font-size: 1rem;
+    font-weight: 500;
+    line-height: 1.5;
+  }
+
+  @media (min-width: 640px) {
+    .card-mobile {
+      font-size: 0.9375rem;
+    }
+  }
+
+  /* Modern Card Styles - Applied to all features */
+  .modern-card, .dashboard-card {
+    background: linear-gradient(135deg, var(--card-bg), var(--card-bg-secondary));
+    border: 1px solid var(--card-border);
+    border-radius: 20px;
+    padding: 28px;
+    box-shadow: 0 8px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+    backdrop-filter: blur(10px);
+  }
+
+  .dark .modern-card, .dark .dashboard-card {
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.4), 0 10px 10px -5px rgba(0, 0, 0, 0.2);
+  }
+
+  .modern-card:hover, .dashboard-card:hover {
+    transform: translateY(-8px) scale(1.02);
+    box-shadow: 0 15px 25px -5px rgba(0, 0, 0, 0.2), 0 8px 15px -5px rgba(0, 0, 0, 0.1);
+  }
+
+  .dark .modern-card:hover, .dark .dashboard-card:hover {
+    box-shadow: 0 30px 40px -10px rgba(0, 0, 0, 0.5), 0 20px 20px -10px rgba(0, 0, 0, 0.3);
+  }
+
+  .modern-card::before, .dashboard-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 6px;
+    background: linear-gradient(90deg, var(--card-accent), var(--card-accent-secondary));
+    border-radius: 20px 20px 0 0;
+  }
+
+  /* Enhanced Page Styling */
+  .modern-page {
+    background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 50%, #cbd5e1 100%);
+    min-height: 100vh;
+    padding: 24px;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+  }
+
+  .dark .modern-page {
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
+  }
+
+  /* Modern Header Styles */
+  .modern-header {
+    margin-bottom: 32px;
+  }
+
+  .modern-title {
+    font-size: 2.5rem;
+    font-weight: 800;
+    background: linear-gradient(135deg, #1e293b, #475569);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 8px;
+    line-height: 1.2;
+  }
+
+  .dark .modern-title {
+    background: linear-gradient(135deg, #f1f5f9, #cbd5e1);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .modern-subtitle {
+    font-size: 1.125rem;
+    color: #64748b;
+    font-weight: 500;
+    margin-bottom: 24px;
+  }
+
+  .dark .modern-subtitle {
+    color: #cbd5e1;
+  }
+
+  /* Modern Table Styles */
+  .modern-table {
+    background: rgba(255, 255, 255, 0.8);
+    border-radius: 16px;
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    overflow: hidden;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  }
+
+  .dark .modern-table {
+    background: rgba(30, 41, 59, 0.8);
+    border: 1px solid rgba(148, 163, 184, 0.1);
+  }
+
+  .modern-table-header {
+    background: linear-gradient(135deg, #f1f5f9, #e2e8f0);
+    font-weight: 700;
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #374151;
+  }
+
+  .dark .modern-table-header {
+    background: linear-gradient(135deg, #1e293b, #334155);
+    color: #e2e8f0;
+  }
+
+  .modern-table-row {
+    border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+    transition: all 0.2s ease;
+  }
+
+  .modern-table-row:hover {
+    background: rgba(59, 130, 246, 0.05);
+  }
+
+  .dark .modern-table-row:hover {
+    background: rgba(59, 130, 246, 0.1);
+  }
+
+  .modern-table-cell {
+    padding: 16px;
+    font-size: 0.9375rem;
+    font-weight: 500;
+    color: #374151;
+  }
+
+  .dark .modern-table-cell {
+    color: #e2e8f0;
+  }
+
+  /* Enhanced Filter Section */
+  .modern-filters {
+    background: rgba(255, 255, 255, 0.7);
+    border-radius: 16px;
+    padding: 24px;
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    backdrop-filter: blur(10px);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    margin-bottom: 24px;
+  }
+
+  .dark .modern-filters {
+    background: rgba(30, 41, 59, 0.7);
+    border: 1px solid rgba(148, 163, 184, 0.1);
+  }
+
+  /* Modern Button Styles */
+  .modern-button {
+    font-size: 1rem;
+    font-weight: 600;
+    padding: 12px 24px;
+    border-radius: 12px;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  }
+
+  .modern-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 15px -3px rgba(0, 0, 0, 0.2);
+  }
+
+  /* Card variants with enhanced colors */
+  .card-plants {
+    --card-bg: rgba(34, 197, 94, 0.1);
+    --card-bg-secondary: rgba(34, 197, 94, 0.05);
+    --card-border: rgba(34, 197, 94, 0.2);
+    --card-accent: #16a34a;
+    --card-accent-secondary: #15803d;
+  }
+
+  .dark .card-plants {
+    --card-bg: rgba(34, 197, 94, 0.15);
+    --card-bg-secondary: rgba(34, 197, 94, 0.08);
+    --card-border: rgba(34, 197, 94, 0.3);
+    --card-accent: #22c55e;
+    --card-accent-secondary: #16a34a;
+  }
+
+  .card-seedlings, .card-blue {
+    --card-bg: rgba(59, 130, 246, 0.1);
+    --card-bg-secondary: rgba(59, 130, 246, 0.05);
+    --card-border: rgba(59, 130, 246, 0.2);
+    --card-accent: #2563eb;
+    --card-accent-secondary: #1d4ed8;
+  }
+
+  .dark .card-seedlings, .dark .card-blue {
+    --card-bg: rgba(59, 130, 246, 0.15);
+    --card-bg-secondary: rgba(59, 130, 246, 0.08);
+    --card-border: rgba(59, 130, 246, 0.3);
+    --card-accent: #3b82f6;
+    --card-accent-secondary: #2563eb;
+  }
+
+  .card-sales, .card-orange {
+    --card-bg: rgba(245, 158, 11, 0.1);
+    --card-bg-secondary: rgba(245, 158, 11, 0.05);
+    --card-border: rgba(245, 158, 11, 0.2);
+    --card-accent: #d97706;
+    --card-accent-secondary: #b45309;
+  }
+
+  .dark .card-sales, .dark .card-orange {
+    --card-bg: rgba(245, 158, 11, 0.15);
+    --card-bg-secondary: rgba(245, 158, 11, 0.08);
+    --card-border: rgba(245, 158, 11, 0.3);
+    --card-accent: #f59e0b;
+    --card-accent-secondary: #d97706;
+  }
+
+  .card-today-sales, .card-purple {
+    --card-bg: rgba(168, 85, 247, 0.1);
+    --card-bg-secondary: rgba(168, 85, 247, 0.05);
+    --card-border: rgba(168, 85, 247, 0.2);
+    --card-accent: #9333ea;
+    --card-accent-secondary: #7c3aed;
+  }
+
+  .dark .card-today-sales, .dark .card-purple {
+    --card-bg: rgba(168, 85, 247, 0.15);
+    --card-bg-secondary: rgba(168, 85, 247, 0.08);
+    --card-border: rgba(168, 85, 247, 0.3);
+    --card-accent: #a855f7;
+    --card-accent-secondary: #9333ea;
+  }
+
+  .card-red {
+    --card-bg: rgba(239, 68, 68, 0.1);
+    --card-bg-secondary: rgba(239, 68, 68, 0.05);
+    --card-border: rgba(239, 68, 68, 0.2);
+    --card-accent: #dc2626;
+    --card-accent-secondary: #b91c1c;
+  }
+
+  .dark .card-red {
+    --card-bg: rgba(239, 68, 68, 0.15);
+    --card-bg-secondary: rgba(239, 68, 68, 0.08);
+    --card-border: rgba(239, 68, 68, 0.3);
+    --card-accent: #ef4444;
+    --card-accent-secondary: #dc2626;
+  }
+
+  .card-title {
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: var(--card-accent);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  }
+
+  .card-value {
+    font-size: 2.75rem;
+    font-weight: 900;
+    line-height: 1.1;
+    margin-bottom: 8px;
+    background: linear-gradient(135deg, var(--card-accent), var(--card-accent-secondary));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    text-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+  }
+
+  .card-description {
+    font-size: 0.875rem;
+    color: #64748b;
+    font-weight: 600;
+    text-shadow: none;
+  }
+
+  .dark .card-description {
+    color: #cbd5e1;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  }
+
+  .card-icon {
+    width: 20px;
+    height: 20px;
+    color: var(--card-accent);
+  }
+
+  /* Mobile responsiveness */
+  @media (max-width: 640px) {
+    .modern-card, .dashboard-card {
+      padding: 20px;
+      border-radius: 12px;
+    }
+
+    .modern-title {
+      font-size: 1.875rem;
+    }
+
+    .modern-subtitle {
+      font-size: 1rem;
+    }
+
+    .card-value {
+      font-size: 2rem;
+      font-weight: 700;
+    }
+
+    .card-title {
+      font-size: 0.8125rem;
+    }
+
+    .card-description {
+      font-size: 0.8125rem;
+    }
+
+    .modern-page {
+      padding: 16px;
+    }
+
+    .modern-filters {
+      padding: 16px;
+    }
+
+    .modern-table-cell {
+      padding: 12px;
+      font-size: 0.875rem;
+    }
+  }
+}
+/* ── Thermal Receipt Print Styles ───────────────────────── */
+@media print {
+  /* Hide everything */
+  body > * { display: none !important; }
+  #__next > * { display: none !important; }
+
+  /* Show only the print target */
+  .receipt-print-area {
+    display: block !important;
+    position: fixed !important;
+    top: 0 !important; left: 0 !important;
+    width: 80mm !important;
+    margin: 0 !important;
+    padding: 4mm !important;
+    font-family: 'Courier New', Courier, monospace !important;
+    font-size: 11pt !important;
+    color: #000 !important;
+    background: #fff !important;
+    box-shadow: none !important;
+    border: none !important;
+  }
+
+  .receipt-print-area * {
+    color: #000 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+
+  .receipt-print-area .receipt-divider {
+    border-top: 1px dashed #000 !important;
+    margin: 2mm 0 !important;
+  }
+
+  @page {
+    size: 80mm auto;
+    margin: 0;
+  }
+}

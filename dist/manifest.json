@@ -1,0 +1,67 @@
+{
+  "name": "LittleForest - Nursery Management",
+  "short_name": "LittleForest",
+  "description": "Professional nursery management system by Agrisols Systems for inventory, sales, and plant tracking",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#FFF8EA",
+  "theme_color": "#22A45D",
+  "display_override": ["window-controls-overlay", "standalone"],
+  "edge_side_panel": {
+    "preferred_width": 412
+  },
+  "categories": ["business", "productivity"],
+  "prefer_related_applications": false,
+  "lang": "en",
+  "scope": "/",
+  "id": "littleforest-nursery-app",
+  "icons": [
+    {
+      "src": "/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/images/nursery-background-new.jpg",
+      "sizes": "1280x720",
+      "type": "image/jpeg",
+      "form_factor": "wide"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Add Inventory",
+      "short_name": "Add Item",
+      "description": "Quickly add new inventory items",
+      "url": "/?tab=inventory",
+      "icons": [
+        {
+          "src": "/icon-192x192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "View Dashboard",
+      "short_name": "Dashboard",
+      "description": "View farm overview",
+      "url": "/?tab=dashboard",
+      "icons": [
+        {
+          "src": "/icon-192x192.png",
+          "sizes": "192x192"
+        }
+      ]
+    }
+  ]
+}
