@@ -453,7 +453,7 @@ export function DashboardTab() {
             <div className="flex items-start justify-between gap-1">
               <div className="space-y-1 min-w-0">
                 <p className="text-sm font-medium text-muted-foreground truncate">Total Plants</p>
-                <p className="text-2xl sm:text-3xl font-bold tracking-tight">{inventorySummary.totalItems}</p>
+                <p className="text-3xl sm:text-4xl font-bold tracking-tight">{inventorySummary.totalItems}</p>
                 <div className="flex items-center gap-1 text-sm text-emerald-600 dark:text-emerald-400">
                   <Package className="h-3.5 w-3.5 flex-shrink-0" />
                   <span className="text-muted-foreground truncate">{inventorySummary.totalQuantity.toLocaleString()} sdlngs</span>
@@ -471,7 +471,7 @@ export function DashboardTab() {
             <div className="flex items-start justify-between gap-1">
               <div className="space-y-1 min-w-0">
                 <p className="text-sm font-medium text-muted-foreground truncate">Total Revenue</p>
-                <p className="text-lg sm:text-2xl font-bold tracking-tight truncate">Ksh {salesSummary.totalAmount.toLocaleString()}</p>
+                <p className="text-2xl sm:text-3xl font-bold tracking-tight truncate">Ksh {salesSummary.totalAmount.toLocaleString()}</p>
                 <div className="flex items-center gap-1 text-sm flex-wrap">
                   {isGrowthPositive ? (
                     <TrendingUp className="h-3 w-3 text-green-600 flex-shrink-0" />
@@ -495,7 +495,7 @@ export function DashboardTab() {
             <div className="flex items-start justify-between gap-1">
               <div className="space-y-1 min-w-0">
                 <p className="text-sm font-medium text-muted-foreground truncate">This Month</p>
-                <p className="text-lg sm:text-2xl font-bold tracking-tight truncate">Ksh {salesSummary.thisMonthAmount.toLocaleString()}</p>
+                <p className="text-2xl sm:text-3xl font-bold tracking-tight truncate">Ksh {salesSummary.thisMonthAmount.toLocaleString()}</p>
                 <div className="flex items-center gap-1 text-sm text-blue-600 dark:text-blue-400">
                   <Calendar className="h-3 w-3 flex-shrink-0" />
                   <span className="text-muted-foreground truncate">Last: {salesSummary.lastMonthAmount > 0 ? `${(salesSummary.lastMonthAmount/1000).toFixed(0)}k` : '0'}</span>
@@ -513,7 +513,7 @@ export function DashboardTab() {
             <div className="flex items-start justify-between gap-1">
               <div className="space-y-1 min-w-0">
                 <p className="text-sm font-medium text-muted-foreground truncate">Total Sales</p>
-                <p className="text-2xl sm:text-3xl font-bold tracking-tight">{salesSummary.totalSales}</p>
+                <p className="text-3xl sm:text-4xl font-bold tracking-tight">{salesSummary.totalSales}</p>
                 <div className="flex items-center gap-1 text-sm text-purple-600 dark:text-purple-400">
                   <ShoppingCart className="h-3 w-3 flex-shrink-0" />
                   <span className="text-muted-foreground">{salesSummary.todaySales} today</span>
