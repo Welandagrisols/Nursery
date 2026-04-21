@@ -69,7 +69,10 @@ export default function HomePage() {
         {/* ── Touch layout: bottom nav + full-width content ── */}
         <div className="flex flex-col flex-1 lg:hidden min-h-screen">
           {/* Top title bar */}
-          <header className="sticky top-0 z-20 bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between shadow-sm">
+          <header
+            className="sticky top-0 z-20 bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between shadow-sm"
+            style={{ paddingTop: 'calc(env(safe-area-inset-top) + 0.75rem)' }}
+          >
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 bg-green-600 rounded-lg flex items-center justify-center shrink-0">
                 <span className="text-white font-bold text-sm">GH</span>
@@ -98,7 +101,10 @@ export default function HomePage() {
           {isDemoMode && <DemoModeBanner isDemoMode={isDemoMode} connectionStatus="demo" />}
 
           {/* Scrollable content — padded at bottom to clear nav bar */}
-          <main className="flex-1 overflow-auto p-4 pb-[88px]">
+          <main
+            className="flex-1 overflow-auto p-4"
+            style={{ paddingBottom: 'calc(88px + env(safe-area-inset-bottom))' }}
+          >
             <PageContent activeTab={activeTab} setActiveTab={setTab} />
           </main>
 
