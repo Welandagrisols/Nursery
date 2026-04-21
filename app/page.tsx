@@ -70,8 +70,8 @@ export default function HomePage() {
         <div className="flex flex-col flex-1 lg:hidden min-h-screen">
           {/* Top title bar */}
           <header
-            className="sticky top-0 z-20 bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between shadow-sm"
-            style={{ paddingTop: 'calc(env(safe-area-inset-top) + 0.75rem)' }}
+            className="sticky top-0 z-20 bg-white border-b border-gray-200 px-4 pb-3 flex items-center justify-between shadow-sm"
+            style={{ paddingTop: 'calc(env(safe-area-inset-top) + 1.75rem)' }}
           >
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 bg-green-600 rounded-lg flex items-center justify-center shrink-0">
@@ -103,7 +103,7 @@ export default function HomePage() {
           {/* Scrollable content — padded at bottom to clear nav bar */}
           <main
             className="flex-1 overflow-auto p-4"
-            style={{ paddingBottom: 'calc(88px + env(safe-area-inset-bottom))' }}
+            style={{ paddingBottom: 'calc(96px + env(safe-area-inset-bottom))' }}
           >
             <PageContent activeTab={activeTab} setActiveTab={setTab} />
           </main>
