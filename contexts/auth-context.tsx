@@ -10,6 +10,8 @@ interface AuthContextType {
   loading: boolean
   signIn: (email: string, password: string) => Promise<{ error: any }>
   signUp: (email: string, password: string) => Promise<{ data: any, error: any }>
+  resetPassword: (email: string) => Promise<{ error: any }>
+  updatePassword: (newPassword: string) => Promise<{ error: any }>
   signOut: () => Promise<void>
   isAuthenticated: boolean
 }
@@ -136,6 +138,29 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   }
 
+  const resetPassword = async (email: string) => {
+    try {
+      const redirectTo = typeof window !== 'undefined'
+        ? `${window.location.origin}/reset-password`
+        : undefined
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo,
+      })
+      return { error }
+    } catch (error) {
+      return { error }
+    }
+  }
+
+  const updatePassword = async (newPassword: string) => {
+    try {
+      const { error } = await supabase.auth.updateUser({ password: newPassword })
+      return { error }
+    } catch (error) {
+      return { error }
+    }
+  }
+
   const signOut = async () => {
     try {
       await supabase.auth.signOut()
@@ -150,6 +175,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
     loading,
     signIn,
     signUp,
+    resetPassword,
+    updatePassword,
     signOut,
     isAuthenticated: !!user,
   }

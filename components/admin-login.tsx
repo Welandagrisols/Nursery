@@ -22,8 +22,8 @@ export function AdminLogin() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
   const [info, setInfo] = useState('')
-  const [mode, setMode] = useState<'signin' | 'signup'>('signin')
-  const { signIn, signUp } = useAuth()
+  const [mode, setMode] = useState<'signin' | 'signup' | 'forgot'>('signin')
+  const { signIn, signUp, resetPassword } = useAuth()
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -34,7 +34,7 @@ export function AdminLogin() {
       const { error } = await signIn(email.trim(), password)
       if (error) setError('Invalid email or password. Please try again.')
       setPassword('')
-    } else {
+    } else if (mode === 'signup') {
       if (password.length < 6) {
         setError('Password must be at least 6 characters.')
         setIsLoading(false)
@@ -49,6 +49,18 @@ export function AdminLogin() {
         setInfo('Account created. Please check your email to confirm, then sign in.')
         setMode('signin')
         setPassword('')
+      }
+    } else if (mode === 'forgot') {
+      if (!email.trim()) {
+        setError('Please enter your email address.')
+        setIsLoading(false)
+        return
+      }
+      const { error } = await resetPassword(email.trim())
+      if (error) {
+        setError(error.message || 'Could not send reset email.')
+      } else {
+        setInfo('If an account exists for that email, a password reset link has been sent. Please check your inbox.')
       }
     }
     setIsLoading(false)
@@ -116,7 +128,9 @@ export function AdminLogin() {
                   ← Back
                 </button>
                 <p className="font-bold text-gray-700 text-lg mb-4">
-                  {mode === 'signin' ? 'Owner / Manager Sign In' : 'Create Owner / Manager Account'}
+                  {mode === 'signin' && 'Owner / Manager Sign In'}
+                  {mode === 'signup' && 'Create Owner / Manager Account'}
+                  {mode === 'forgot' && 'Reset Your Password'}
                 </p>
 
                 <form onSubmit={handleSignIn} className="space-y-4">
@@ -134,6 +148,7 @@ export function AdminLogin() {
                     />
                   </div>
 
+                  {mode !== 'forgot' && (
                   <div className="space-y-1.5">
                     <Label htmlFor="password">Password</Label>
                     <div className="relative">
@@ -158,6 +173,19 @@ export function AdminLogin() {
                       </Button>
                     </div>
                   </div>
+                  )}
+
+                  {mode === 'signin' && (
+                    <div className="text-right -mt-2">
+                      <button
+                        type="button"
+                        className="text-sm text-green-700 hover:underline"
+                        onClick={() => { setMode('forgot'); setError(''); setInfo(''); setPassword('') }}
+                      >
+                        Forgot password?
+                      </button>
+                    </div>
+                  )}
 
                   {error && (
                     <Alert variant="destructive">
@@ -172,14 +200,24 @@ export function AdminLogin() {
                   )}
 
                   <Button type="submit" className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 text-base" disabled={isLoading}>
-                    {isLoading
-                      ? <><LoadingSpinner /><span className="ml-2">{mode === 'signin' ? 'Signing in...' : 'Creating account...'}</span></>
-                      : (mode === 'signin' ? 'Sign In' : 'Create Account')}
+                    {isLoading ? (
+                      <><LoadingSpinner /><span className="ml-2">
+                        {mode === 'signin' && 'Signing in...'}
+                        {mode === 'signup' && 'Creating account...'}
+                        {mode === 'forgot' && 'Sending email...'}
+                      </span></>
+                    ) : (
+                      <>
+                        {mode === 'signin' && 'Sign In'}
+                        {mode === 'signup' && 'Create Account'}
+                        {mode === 'forgot' && 'Send Reset Link'}
+                      </>
+                    )}
                   </Button>
                 </form>
 
                 <div className="text-center text-sm text-gray-500 pt-2">
-                  {mode === 'signin' ? (
+                  {mode === 'signin' && (
                     <>Don&apos;t have an account?{' '}
                       <button
                         type="button"
@@ -189,7 +227,8 @@ export function AdminLogin() {
                         Create one
                       </button>
                     </>
-                  ) : (
+                  )}
+                  {mode === 'signup' && (
                     <>Already have an account?{' '}
                       <button
                         type="button"
@@ -199,6 +238,15 @@ export function AdminLogin() {
                         Sign in
                       </button>
                     </>
+                  )}
+                  {mode === 'forgot' && (
+                    <button
+                      type="button"
+                      className="text-green-700 font-semibold hover:underline"
+                      onClick={() => { setMode('signin'); setError(''); setInfo('') }}
+                    >
+                      Back to sign in
+                    </button>
                   )}
                 </div>
               </div>
