@@ -21,15 +21,36 @@ export function AdminLogin() {
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
-  const { signIn } = useAuth()
+  const [info, setInfo] = useState('')
+  const [mode, setMode] = useState<'signin' | 'signup'>('signin')
+  const { signIn, signUp } = useAuth()
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
+    setInfo('')
     setIsLoading(true)
-    const { error } = await signIn(email.trim(), password)
-    if (error) setError('Invalid email or password. Please try again.')
-    setPassword('')
+    if (mode === 'signin') {
+      const { error } = await signIn(email.trim(), password)
+      if (error) setError('Invalid email or password. Please try again.')
+      setPassword('')
+    } else {
+      if (password.length < 6) {
+        setError('Password must be at least 6 characters.')
+        setIsLoading(false)
+        return
+      }
+      const { data, error } = await signUp(email.trim(), password)
+      if (error) {
+        setError(error.message || 'Could not create account.')
+      } else if (data?.session) {
+        setInfo('Account created. Signing you in...')
+      } else {
+        setInfo('Account created. Please check your email to confirm, then sign in.')
+        setMode('signin')
+        setPassword('')
+      }
+    }
     setIsLoading(false)
   }
 
@@ -94,7 +115,9 @@ export function AdminLogin() {
                 >
                   ← Back
                 </button>
-                <p className="font-bold text-gray-700 text-lg mb-4">Owner / Manager Sign In</p>
+                <p className="font-bold text-gray-700 text-lg mb-4">
+                  {mode === 'signin' ? 'Owner / Manager Sign In' : 'Create Owner / Manager Account'}
+                </p>
 
                 <form onSubmit={handleSignIn} className="space-y-4">
                   <div className="space-y-1.5">
@@ -142,10 +165,42 @@ export function AdminLogin() {
                     </Alert>
                   )}
 
+                  {info && (
+                    <Alert>
+                      <AlertDescription>{info}</AlertDescription>
+                    </Alert>
+                  )}
+
                   <Button type="submit" className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 text-base" disabled={isLoading}>
-                    {isLoading ? <><LoadingSpinner /><span className="ml-2">Signing in...</span></> : 'Sign In'}
+                    {isLoading
+                      ? <><LoadingSpinner /><span className="ml-2">{mode === 'signin' ? 'Signing in...' : 'Creating account...'}</span></>
+                      : (mode === 'signin' ? 'Sign In' : 'Create Account')}
                   </Button>
                 </form>
+
+                <div className="text-center text-sm text-gray-500 pt-2">
+                  {mode === 'signin' ? (
+                    <>Don&apos;t have an account?{' '}
+                      <button
+                        type="button"
+                        className="text-green-700 font-semibold hover:underline"
+                        onClick={() => { setMode('signup'); setError(''); setInfo('') }}
+                      >
+                        Create one
+                      </button>
+                    </>
+                  ) : (
+                    <>Already have an account?{' '}
+                      <button
+                        type="button"
+                        className="text-green-700 font-semibold hover:underline"
+                        onClick={() => { setMode('signin'); setError(''); setInfo('') }}
+                      >
+                        Sign in
+                      </button>
+                    </>
+                  )}
+                </div>
               </div>
             )}
 
