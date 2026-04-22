@@ -423,8 +423,13 @@ export function DashboardTab() {
   }
 
   return (
-    <div className="space-y-4 p-3 sm:p-4 lg:p-8">
-      <h1 className="modern-title">Dashboard</h1>
+    <div className="space-y-6 p-3 sm:p-4 lg:p-8">
+      {/* Modern Header — matches Inventory / Sales style */}
+      <div className="modern-header">
+        <h1 className="modern-title">Dashboard</h1>
+        <p className="modern-subtitle">Overview of your nursery's plants, sales, and performance</p>
+      </div>
+
       {(isDemoMode || tablesNotExist) && <DemoModeBanner isDemoMode={isDemoMode} connectionStatus={isDemoMode ? 'demo' : 'connecting'} />}
 
       {/* Stock Alerts Banner */}
@@ -446,83 +451,47 @@ export function DashboardTab() {
         </div>
       )}
 
-      {/* Stat cards — 2 columns on all mobile, 4 on desktop */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <Card className="relative overflow-hidden border-0 shadow-md bg-gradient-to-br from-emerald-50 to-green-50 dark:from-emerald-950 dark:to-green-950">
-          <CardContent className="p-3 sm:p-5">
-            <div className="flex items-start justify-between gap-1">
-              <div className="space-y-1 min-w-0">
-                <p className="text-sm font-medium text-muted-foreground truncate">Total Plants</p>
-                <p className="text-3xl sm:text-4xl font-bold tracking-tight">{inventorySummary.totalItems}</p>
-                <div className="flex items-center gap-1 text-sm text-emerald-600 dark:text-emerald-400">
-                  <Package className="h-3.5 w-3.5 flex-shrink-0" />
-                  <span className="text-muted-foreground truncate">{inventorySummary.totalQuantity.toLocaleString()} sdlngs</span>
-                </div>
-              </div>
-              <div className="rounded-full bg-emerald-100 dark:bg-emerald-900 p-2 flex-shrink-0">
-                <Sprout className="h-4 w-4 sm:h-6 sm:w-6 text-emerald-600 dark:text-emerald-400" />
-              </div>
-            </div>
+      {/* Summary Cards — clean style matching Inventory / Sales */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <Card>
+          <CardHeader className="px-4 pt-4 pb-2">
+            <CardTitle className="text-sm font-medium">Total Plants</CardTitle>
+          </CardHeader>
+          <CardContent className="px-4 pb-4 pt-0">
+            <div className="text-3xl sm:text-4xl font-bold text-green-600">{inventorySummary.totalItems}</div>
+            <p className="text-xs text-muted-foreground mt-1">{inventorySummary.totalQuantity.toLocaleString()} seedlings</p>
           </CardContent>
         </Card>
 
-        <Card className="relative overflow-hidden border-0 shadow-md bg-gradient-to-br from-orange-50 to-amber-50 dark:from-orange-950 dark:to-amber-950">
-          <CardContent className="p-3 sm:p-5">
-            <div className="flex items-start justify-between gap-1">
-              <div className="space-y-1 min-w-0">
-                <p className="text-sm font-medium text-muted-foreground truncate">Total Revenue</p>
-                <p className="text-2xl sm:text-3xl font-bold tracking-tight truncate">Ksh {salesSummary.totalAmount.toLocaleString()}</p>
-                <div className="flex items-center gap-1 text-sm flex-wrap">
-                  {isGrowthPositive ? (
-                    <TrendingUp className="h-3 w-3 text-green-600 flex-shrink-0" />
-                  ) : (
-                    <TrendingDown className="h-3 w-3 text-red-600 flex-shrink-0" />
-                  )}
-                  <span className={isGrowthPositive ? "text-green-600 font-medium" : "text-red-600 font-medium"}>
-                    {isGrowthPositive ? '+' : ''}{monthGrowth}%
-                  </span>
-                </div>
-              </div>
-              <div className="rounded-full bg-orange-100 dark:bg-orange-900 p-2 flex-shrink-0">
-                <DollarSign className="h-4 w-4 sm:h-6 sm:w-6 text-orange-600 dark:text-orange-400" />
-              </div>
-            </div>
+        <Card>
+          <CardHeader className="px-4 pt-4 pb-2">
+            <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
+          </CardHeader>
+          <CardContent className="px-4 pb-4 pt-0">
+            <div className="text-2xl sm:text-3xl font-bold text-orange-600">Ksh {salesSummary.totalAmount.toLocaleString()}</div>
+            <p className={`text-xs mt-1 font-medium ${isGrowthPositive ? 'text-green-600' : 'text-red-600'}`}>
+              {isGrowthPositive ? '↑' : '↓'} {isGrowthPositive ? '+' : ''}{monthGrowth}% vs last month
+            </p>
           </CardContent>
         </Card>
 
-        <Card className="relative overflow-hidden border-0 shadow-md bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950 dark:to-indigo-950">
-          <CardContent className="p-3 sm:p-5">
-            <div className="flex items-start justify-between gap-1">
-              <div className="space-y-1 min-w-0">
-                <p className="text-sm font-medium text-muted-foreground truncate">This Month</p>
-                <p className="text-2xl sm:text-3xl font-bold tracking-tight truncate">Ksh {salesSummary.thisMonthAmount.toLocaleString()}</p>
-                <div className="flex items-center gap-1 text-sm text-blue-600 dark:text-blue-400">
-                  <Calendar className="h-3 w-3 flex-shrink-0" />
-                  <span className="text-muted-foreground truncate">Last: {salesSummary.lastMonthAmount > 0 ? `${(salesSummary.lastMonthAmount/1000).toFixed(0)}k` : '0'}</span>
-                </div>
-              </div>
-              <div className="rounded-full bg-blue-100 dark:bg-blue-900 p-2 flex-shrink-0">
-                <Activity className="h-4 w-4 sm:h-6 sm:w-6 text-blue-600 dark:text-blue-400" />
-              </div>
-            </div>
+        <Card>
+          <CardHeader className="px-4 pt-4 pb-2">
+            <CardTitle className="text-sm font-medium">This Month</CardTitle>
+          </CardHeader>
+          <CardContent className="px-4 pb-4 pt-0">
+            <div className="text-2xl sm:text-3xl font-bold text-green-600">Ksh {salesSummary.thisMonthAmount.toLocaleString()}</div>
+            <p className="text-xs text-muted-foreground mt-1">Last: Ksh {salesSummary.lastMonthAmount.toLocaleString()}</p>
           </CardContent>
         </Card>
 
-        <Card className="relative overflow-hidden border-0 shadow-md bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950 dark:to-pink-950">
-          <CardContent className="p-3 sm:p-5">
-            <div className="flex items-start justify-between gap-1">
-              <div className="space-y-1 min-w-0">
-                <p className="text-sm font-medium text-muted-foreground truncate">Total Sales</p>
-                <p className="text-3xl sm:text-4xl font-bold tracking-tight">{salesSummary.totalSales}</p>
-                <div className="flex items-center gap-1 text-sm text-purple-600 dark:text-purple-400">
-                  <ShoppingCart className="h-3 w-3 flex-shrink-0" />
-                  <span className="text-muted-foreground">{salesSummary.todaySales} today</span>
-                </div>
-              </div>
-              <div className="rounded-full bg-purple-100 dark:bg-purple-900 p-2 flex-shrink-0">
-                <ShoppingCart className="h-4 w-4 sm:h-6 sm:w-6 text-purple-600 dark:text-purple-400" />
-              </div>
-            </div>
+        <Card>
+          <CardHeader className="px-4 pt-4 pb-2">
+            <CardTitle className="text-sm font-medium">Total Sales</CardTitle>
+          </CardHeader>
+          <CardContent className="px-4 pb-4 pt-0">
+            <div className="text-3xl sm:text-4xl font-bold text-orange-600">{salesSummary.totalSales}</div>
+            <p className="text-xs text-muted-foreground mt-1">{salesSummary.todaySales} today</p>
           </CardContent>
         </Card>
       </div>
