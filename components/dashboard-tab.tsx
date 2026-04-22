@@ -497,12 +497,9 @@ export function DashboardTab() {
       </div>
 
       <Card>
-        <CardHeader className="px-4 py-3 sm:px-6 sm:py-4">
-          <CardTitle className="text-base sm:text-lg font-semibold flex items-center gap-2">
-            <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5 text-green-600" />
-            Sales Trend (Last 6 Months)
-          </CardTitle>
-          <CardDescription className="text-xs sm:text-sm">Revenue and number of sales over time</CardDescription>
+        <CardHeader className="px-4 py-4 sm:px-6">
+          <CardTitle className="text-lg sm:text-xl font-semibold">Sales Trend</CardTitle>
+          <CardDescription className="text-sm">Last 6 months — revenue and sales count</CardDescription>
         </CardHeader>
         <CardContent className="px-2 sm:px-6">
           {loading ? (
@@ -555,12 +552,9 @@ export function DashboardTab() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <Card>
-          <CardHeader className="px-4 py-3 sm:px-6 sm:py-4">
-            <CardTitle className="text-base sm:text-lg font-semibold flex items-center gap-2">
-              <Crown className="h-4 w-4 sm:h-5 sm:w-5 text-yellow-500" />
-              Best Selling Plants
-            </CardTitle>
-            <CardDescription className="text-xs sm:text-sm">Top 5 plants by quantity sold</CardDescription>
+          <CardHeader className="px-4 py-4 sm:px-6">
+            <CardTitle className="text-lg sm:text-xl font-semibold">Best Selling Plants</CardTitle>
+            <CardDescription className="text-sm">Top 5 by quantity sold</CardDescription>
           </CardHeader>
           <CardContent className="px-4 pb-4 sm:px-6">
             {loading ? (
@@ -568,19 +562,19 @@ export function DashboardTab() {
             ) : bestSellers.length === 0 ? (
               <div className="h-[200px] flex items-center justify-center text-muted-foreground text-sm">No sales data yet</div>
             ) : (
-              <div className="space-y-3">
+              <div className="space-y-4">
                 {bestSellers.map((plant, index) => {
                   const maxQuantity = bestSellers[0]?.quantity || 1
                   const percentage = (plant.quantity / maxQuantity) * 100
                   return (
-                    <div key={plant.name} className="space-y-1.5">
+                    <div key={plant.name} className="space-y-2">
                       <div className="flex items-center gap-2">
                         <div className="flex-shrink-0">{getRankIcon(index)}</div>
-                        <span className="font-medium text-sm truncate flex-1">{plant.name}</span>
-                        <span className="font-semibold text-xs text-right flex-shrink-0">{plant.quantity} sold</span>
+                        <span className="font-medium text-base truncate flex-1">{plant.name}</span>
+                        <span className="font-semibold text-sm text-right flex-shrink-0 tabular-nums">{plant.quantity.toLocaleString()} sold</span>
                       </div>
-                      <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-                        <div 
+                      <div className="h-2 bg-muted rounded-full overflow-hidden">
+                        <div
                           className="h-full rounded-full transition-all duration-500"
                           style={{ width: `${percentage}%`, backgroundColor: COLORS[index % COLORS.length] }}
                         />
@@ -594,12 +588,9 @@ export function DashboardTab() {
         </Card>
 
         <Card>
-          <CardHeader className="px-4 py-3 sm:px-6 sm:py-4">
-            <CardTitle className="text-base sm:text-lg font-semibold flex items-center gap-2">
-              <Users className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600" />
-              Top Customers
-            </CardTitle>
-            <CardDescription className="text-xs sm:text-sm">Highest spending customers</CardDescription>
+          <CardHeader className="px-4 py-4 sm:px-6">
+            <CardTitle className="text-lg sm:text-xl font-semibold">Top Customers</CardTitle>
+            <CardDescription className="text-sm">Highest spending customers</CardDescription>
           </CardHeader>
           <CardContent className="px-4 pb-4 sm:px-6">
             {loading ? (
@@ -607,19 +598,19 @@ export function DashboardTab() {
             ) : topCustomers.length === 0 ? (
               <div className="h-[200px] flex items-center justify-center text-muted-foreground text-sm">No customer data yet</div>
             ) : (
-              <div className="space-y-3">
+              <div className="space-y-4">
                 {topCustomers.map((customer, index) => {
                   const maxSpent = topCustomers[0]?.totalSpent || 1
                   const percentage = (customer.totalSpent / maxSpent) * 100
                   return (
-                    <div key={customer.name} className="space-y-1.5">
+                    <div key={customer.name} className="space-y-2">
                       <div className="flex items-center gap-2">
                         <div className="flex-shrink-0">{getRankIcon(index)}</div>
-                        <span className="font-medium text-sm truncate flex-1">{customer.name}</span>
-                        <span className="font-semibold text-xs text-right flex-shrink-0">Ksh {(customer.totalSpent/1000).toFixed(0)}k</span>
+                        <span className="font-medium text-base truncate flex-1">{customer.name}</span>
+                        <span className="font-semibold text-sm text-right flex-shrink-0 tabular-nums">Ksh {(customer.totalSpent/1000).toFixed(0)}k</span>
                       </div>
-                      <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-                        <div 
+                      <div className="h-2 bg-muted rounded-full overflow-hidden">
+                        <div
                           className="h-full rounded-full transition-all duration-500"
                           style={{ width: `${percentage}%`, backgroundColor: COLORS[(index + 2) % COLORS.length] }}
                         />
@@ -635,12 +626,9 @@ export function DashboardTab() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <Card>
-          <CardHeader className="px-4 py-3 sm:px-6 sm:py-4">
-            <CardTitle className="text-base sm:text-lg font-semibold flex items-center gap-2">
-              <Package className="h-4 w-4 sm:h-5 sm:w-5 text-purple-600" />
-              Sales by Category
-            </CardTitle>
-            <CardDescription className="text-xs sm:text-sm">Revenue breakdown by plant category</CardDescription>
+          <CardHeader className="px-4 py-4 sm:px-6">
+            <CardTitle className="text-lg sm:text-xl font-semibold">Sales by Category</CardTitle>
+            <CardDescription className="text-sm">Revenue breakdown by plant category</CardDescription>
           </CardHeader>
           <CardContent className="px-3 pb-4 sm:px-6">
             {loading ? (
@@ -648,7 +636,7 @@ export function DashboardTab() {
             ) : categorySales.length === 0 ? (
               <div className="h-[200px] flex items-center justify-center text-muted-foreground text-sm">No category data yet</div>
             ) : (
-              <div className="flex flex-col items-center gap-3">
+              <div className="flex flex-col items-center gap-4">
                 <ResponsiveContainer width="100%" height={180}>
                   <PieChart>
                     <Pie
@@ -664,22 +652,22 @@ export function DashboardTab() {
                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                       ))}
                     </Pie>
-                    <Tooltip 
+                    <Tooltip
                       formatter={(value: number) => [`Ksh ${value.toLocaleString()}`, 'Revenue']}
-                      contentStyle={{ 
-                        backgroundColor: 'hsl(var(--background))', 
+                      contentStyle={{
+                        backgroundColor: 'hsl(var(--background))',
                         border: '1px solid hsl(var(--border))',
                         borderRadius: '8px',
-                        fontSize: '12px'
+                        fontSize: '14px'
                       }}
                     />
                   </PieChart>
                 </ResponsiveContainer>
-                <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 w-full">
+                <div className="grid grid-cols-2 gap-x-4 gap-y-2 w-full">
                   {categorySales.map((category, index) => (
                     <div key={category.name} className="flex items-center gap-2">
-                      <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: COLORS[index % COLORS.length] }} />
-                      <span className="text-xs truncate">{category.name}</span>
+                      <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: COLORS[index % COLORS.length] }} />
+                      <span className="text-sm truncate">{category.name}</span>
                     </div>
                   ))}
                 </div>
@@ -689,12 +677,9 @@ export function DashboardTab() {
         </Card>
 
         <Card>
-          <CardHeader className="px-4 py-3 sm:px-6 sm:py-4">
-            <CardTitle className="text-base sm:text-lg font-semibold flex items-center gap-2">
-              <AlertCircle className="h-4 w-4 sm:h-5 sm:w-5 text-amber-500" />
-              Low Stock Alerts
-            </CardTitle>
-            <CardDescription className="text-xs sm:text-sm">Items that need restocking</CardDescription>
+          <CardHeader className="px-4 py-4 sm:px-6">
+            <CardTitle className="text-lg sm:text-xl font-semibold">Low Stock Alerts</CardTitle>
+            <CardDescription className="text-sm">Items that need restocking</CardDescription>
           </CardHeader>
           <CardContent className="p-0">
             {loading ? (
@@ -702,24 +687,24 @@ export function DashboardTab() {
             ) : lowStockItems.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
                 <Sprout className="h-10 w-10 mx-auto text-green-500 mb-2" />
-                <p className="text-sm">All items well stocked!</p>
+                <p className="text-base">All items well stocked!</p>
               </div>
             ) : (
-              <div className="overflow-x-auto max-h-[250px]">
+              <div className="overflow-x-auto max-h-[280px]">
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="text-xs font-medium px-3 py-2">Plant</TableHead>
-                      <TableHead className="text-xs font-medium px-3 py-2">Qty</TableHead>
-                      <TableHead className="text-xs font-medium px-3 py-2">Status</TableHead>
+                      <TableHead className="text-sm font-semibold px-4 py-3">Plant</TableHead>
+                      <TableHead className="text-sm font-semibold px-4 py-3">Qty</TableHead>
+                      <TableHead className="text-sm font-semibold px-4 py-3">Status</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {lowStockItems.map((item) => (
                       <TableRow key={item.id}>
-                        <TableCell className="text-xs px-3 py-2 max-w-[120px] truncate">{item.plant_name}</TableCell>
-                        <TableCell className="text-xs px-3 py-2 font-semibold text-red-600">{item.quantity}</TableCell>
-                        <TableCell className="px-3 py-2">
+                        <TableCell className="text-sm px-4 py-3 max-w-[140px] truncate font-medium">{item.plant_name}</TableCell>
+                        <TableCell className="text-sm px-4 py-3 font-bold text-red-600 tabular-nums">{item.quantity}</TableCell>
+                        <TableCell className="px-4 py-3">
                           <Badge variant="destructive" className="text-xs">Low</Badge>
                         </TableCell>
                       </TableRow>
@@ -733,12 +718,9 @@ export function DashboardTab() {
       </div>
 
       <Card>
-        <CardHeader className="px-4 py-3 sm:px-6 sm:py-4">
-          <CardTitle className="text-base sm:text-lg font-semibold flex items-center gap-2">
-            <ShoppingCart className="h-4 w-4 sm:h-5 sm:w-5 text-orange-600" />
-            Recent Sales
-          </CardTitle>
-          <CardDescription className="text-xs sm:text-sm">Latest transactions</CardDescription>
+        <CardHeader className="px-4 py-4 sm:px-6">
+          <CardTitle className="text-lg sm:text-xl font-semibold">Recent Sales</CardTitle>
+          <CardDescription className="text-sm">Latest 5 transactions</CardDescription>
         </CardHeader>
         <CardContent className="p-0">
           {loading ? (
@@ -750,21 +732,21 @@ export function DashboardTab() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="text-xs font-medium px-3 py-2">Date</TableHead>
-                    <TableHead className="text-xs font-medium px-3 py-2">Plant</TableHead>
-                    <TableHead className="text-xs font-medium px-3 py-2 hidden sm:table-cell">Customer</TableHead>
-                    <TableHead className="text-xs font-medium px-3 py-2 hidden sm:table-cell">Qty</TableHead>
-                    <TableHead className="text-xs font-medium px-3 py-2">Amount</TableHead>
+                    <TableHead className="text-sm font-semibold px-4 py-3">Date</TableHead>
+                    <TableHead className="text-sm font-semibold px-4 py-3">Plant</TableHead>
+                    <TableHead className="text-sm font-semibold px-4 py-3 hidden sm:table-cell">Customer</TableHead>
+                    <TableHead className="text-sm font-semibold px-4 py-3 hidden sm:table-cell">Qty</TableHead>
+                    <TableHead className="text-sm font-semibold px-4 py-3 text-right">Amount</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {recentSales.slice(0, 5).map((sale) => (
                     <TableRow key={sale.id}>
-                      <TableCell className="text-xs px-3 py-2 whitespace-nowrap">{new Date(sale.sale_date).toLocaleDateString('en-GB', { day:'2-digit', month:'short' })}</TableCell>
-                      <TableCell className="text-xs px-3 py-2 max-w-[100px] truncate">{(sale as any).plant_name || (sale as any).batch_code || "Unknown"}</TableCell>
-                      <TableCell className="text-xs px-3 py-2 hidden sm:table-cell">{(sale as any).customer_type || "Walk-in"}</TableCell>
-                      <TableCell className="text-xs px-3 py-2 hidden sm:table-cell">{sale.quantity}</TableCell>
-                      <TableCell className="text-xs px-3 py-2 font-semibold text-green-600 whitespace-nowrap">Ksh {sale.total_amount.toLocaleString()}</TableCell>
+                      <TableCell className="text-sm px-4 py-3 whitespace-nowrap text-muted-foreground">{new Date(sale.sale_date).toLocaleDateString('en-GB', { day:'2-digit', month:'short' })}</TableCell>
+                      <TableCell className="text-sm px-4 py-3 max-w-[120px] truncate font-medium">{(sale as any).plant_name || (sale as any).batch_code || "Unknown"}</TableCell>
+                      <TableCell className="text-sm px-4 py-3 hidden sm:table-cell">{(sale as any).customer_type || "Walk-in"}</TableCell>
+                      <TableCell className="text-sm px-4 py-3 hidden sm:table-cell tabular-nums">{sale.quantity}</TableCell>
+                      <TableCell className="text-sm px-4 py-3 font-bold text-green-600 whitespace-nowrap text-right tabular-nums">Ksh {sale.total_amount.toLocaleString()}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
