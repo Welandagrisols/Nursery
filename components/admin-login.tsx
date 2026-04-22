@@ -259,6 +259,11 @@ export function AdminLogin() {
 
           </CardContent>
         </Card>
+
+        {/* Platform footer */}
+        <p className="text-center text-xs text-gray-400 mt-8">
+          Powered by <span className="font-semibold text-gray-500">Agrisols Systems</span>
+        </p>
       </div>
     </div>
   )

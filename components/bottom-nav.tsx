@@ -13,17 +13,17 @@ import { useRole, ROLE_TABS } from "@/contexts/role-context"
 
 const ALL_PRIMARY = [
   { id: "dashboard",  label: "Dashboard",  icon: BarChart3 },
-  { id: "layout",     label: "Layout",     icon: Map },
   { id: "inventory",  label: "Inventory",  icon: Package },
   { id: "sales",      label: "Sales",      icon: ShoppingCart },
   { id: "tasks",      label: "Tasks",      icon: CheckSquare },
-  { id: "reports",    label: "Reports",    icon: FileText },
 ]
 
 const ALL_MORE = [
+  { id: "layout",     label: "Layout",      icon: Map },
+  { id: "reports",    label: "Reports",     icon: FileText },
   { id: "customers",  label: "Customers",   icon: Users },
   { id: "creditors",  label: "Creditors",   icon: CreditCard },
-  { id: "website",    label: "Comms",        icon: MessageCircle },
+  { id: "website",    label: "Comms",       icon: MessageCircle },
   { id: "settings",   label: "Settings",    icon: SlidersHorizontal },
   { id: "ops",        label: "Operations",  icon: Settings },
 ]
@@ -146,7 +146,7 @@ export function BottomNav({ activeTab, setActiveTab }: Props) {
         className="fixed bottom-0 left-0 right-0 z-30 bg-white border-t border-gray-200 shadow-[0_-4px_24px_rgba(0,0,0,0.08)]"
         style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
       >
-        <div className="flex items-stretch h-[72px] pt-1">
+        <div className="flex items-stretch h-[68px] px-2 pt-1.5">
           {primaryNav.map(item => {
             const Icon = item.icon
             const active = activeTab === item.id
@@ -154,35 +154,47 @@ export function BottomNav({ activeTab, setActiveTab }: Props) {
               <button
                 key={item.id}
                 onClick={() => { setMoreOpen(false); setActiveTab(item.id) }}
-                className={cn(
-                  "flex-1 flex flex-col items-center justify-center gap-1 transition-all active:scale-95 relative",
-                  active ? "text-green-600" : "text-gray-400 hover:text-gray-600"
-                )}
+                className="flex-1 flex flex-col items-center justify-center gap-1 transition-all active:scale-95 px-1"
+                aria-label={item.label}
               >
-                {active && (
-                  <span className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-1 bg-green-600 rounded-b-full" />
-                )}
-                <Icon className={cn("h-6 w-6 transition-all", active && "scale-110")} />
-                <span className={cn("text-[10px] font-semibold leading-none", active ? "text-green-600" : "text-gray-400")}>
+                <span className={cn(
+                  "flex items-center justify-center h-8 w-12 rounded-full transition-all",
+                  active ? "bg-green-100" : ""
+                )}>
+                  <Icon className={cn(
+                    "h-5 w-5 transition-all",
+                    active ? "text-green-700" : "text-gray-400"
+                  )} />
+                </span>
+                <span className={cn(
+                  "text-xs leading-none",
+                  active ? "text-green-700 font-semibold" : "text-gray-500 font-medium"
+                )}>
                   {item.label}
                 </span>
               </button>
             )
           })}
 
-          {/* More button — only show if there are more items or need sign out */}
+          {/* More button */}
           <button
             onClick={() => setMoreOpen(v => !v)}
-            className={cn(
-              "flex-1 flex flex-col items-center justify-center gap-1 transition-all active:scale-95 relative",
-              isMoreActive || moreOpen ? "text-green-600" : "text-gray-400 hover:text-gray-600"
-            )}
+            className="flex-1 flex flex-col items-center justify-center gap-1 transition-all active:scale-95 px-1"
+            aria-label="More"
           >
-            {(isMoreActive || moreOpen) && (
-              <span className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-1 bg-green-600 rounded-b-full" />
-            )}
-            <MoreHorizontal className={cn("h-6 w-6 transition-all", (isMoreActive || moreOpen) && "scale-110")} />
-            <span className={cn("text-[10px] font-semibold leading-none", (isMoreActive || moreOpen) ? "text-green-600" : "text-gray-400")}>
+            <span className={cn(
+              "flex items-center justify-center h-8 w-12 rounded-full transition-all",
+              (isMoreActive || moreOpen) ? "bg-green-100" : ""
+            )}>
+              <MoreHorizontal className={cn(
+                "h-5 w-5 transition-all",
+                (isMoreActive || moreOpen) ? "text-green-700" : "text-gray-400"
+              )} />
+            </span>
+            <span className={cn(
+              "text-xs leading-none",
+              (isMoreActive || moreOpen) ? "text-green-700 font-semibold" : "text-gray-500 font-medium"
+            )}>
               More
             </span>
           </button>

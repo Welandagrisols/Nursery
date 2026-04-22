@@ -1,4 +1,3 @@
-
 "use client"
 
 import * as React from "react"
@@ -12,28 +11,44 @@ interface AppHeaderProps {
   setActiveTab: (tab: string) => void
 }
 
-export function AppHeader({ activeTab, setActiveTab }: AppHeaderProps) {
+const TAB_TITLES: Record<string, string> = {
+  dashboard: "Dashboard",
+  layout: "Nursery Layout",
+  inventory: "Inventory",
+  sales: "Sales",
+  tasks: "Tasks",
+  reports: "Reports",
+  customers: "Customers",
+  creditors: "Creditors",
+  website: "Communications",
+  settings: "Settings",
+  ops: "Operations",
+}
+
+export function AppHeader({ activeTab }: AppHeaderProps) {
   const { toggleSidebar } = useSidebar()
+  const title = TAB_TITLES[activeTab] ?? ""
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="flex h-16 items-center justify-between px-4">
-        {/* Logo and Menu Button */}
-        <div className="flex items-center gap-2">
+    <header
+      className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60"
+      style={{ paddingTop: "env(safe-area-inset-top)" }}
+    >
+      <div className="flex h-14 items-center justify-between px-4">
+        <div className="flex items-center gap-2 min-w-0">
           <Button
             variant="ghost"
             size="icon"
-            className="md:hidden"
+            className="md:hidden -ml-2 h-9 w-9"
             onClick={toggleSidebar}
+            aria-label="Open menu"
           >
             <Menu className="h-5 w-5" />
           </Button>
-          <div className="flex flex-col leading-none">
-            <span className="font-semibold" style={{color: '#22A45D'}}>Grace Harvest Seedlings</span>
-            <span className="text-xs hidden sm:block text-muted-foreground">Nursery Management</span>
-          </div>
+          <span className="font-semibold text-base text-foreground truncate">
+            {title}
+          </span>
         </div>
-        {/* Theme Toggle */}
         <div className="flex items-center">
           <ThemeToggle />
         </div>
