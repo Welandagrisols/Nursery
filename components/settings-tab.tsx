@@ -35,7 +35,17 @@ interface PriceChange {
   changed_at: string
 }
 
-const OWNER_PIN = "1234" // In production, store securely in Supabase
+const OWNER_PIN_KEY = "vnms_owner_pin"
+const DEFAULT_OWNER_PIN = "1234"
+
+function getOwnerPin(): string {
+  if (typeof window === "undefined") return DEFAULT_OWNER_PIN
+  return localStorage.getItem(OWNER_PIN_KEY) || DEFAULT_OWNER_PIN
+}
+
+function setOwnerPin(newPin: string) {
+  if (typeof window !== "undefined") localStorage.setItem(OWNER_PIN_KEY, newPin)
+}
 
 const DEFAULT_TIERS = [
   { crop_type: "All", customer_type: "Walk-in",       min_quantity: 1,    max_quantity: 499,    price_per_seedling: 10 },
@@ -99,7 +109,7 @@ function PricingSettings() {
   }
 
   async function confirmWithPin() {
-    if (pin !== OWNER_PIN) {
+    if (pin !== getOwnerPin()) {
       toast({ title: "Wrong PIN", description: "Incorrect owner PIN.", variant: "destructive" }); return
     }
     if (!pendingEdit) return
@@ -224,6 +234,124 @@ function PricingSettings() {
   )
 }
 
+function NursuryProfileCard() {
+  const { toast } = useToast()
+  const [name, setName] = useState("")
+  const [currency, setCurrency] = useState("")
+  const [location, setLocation] = useState("")
+
+  useEffect(() => {
+    if (typeof window === "undefined") return
+    setName(localStorage.getItem("vnms_nursery_name") || "Grace Harvest Seedlings")
+    setCurrency(localStorage.getItem("vnms_nursery_currency") || "Kenyan Shillings (Ksh)")
+    setLocation(localStorage.getItem("vnms_nursery_location") || "Kenya")
+  }, [])
+
+  const save = () => {
+    localStorage.setItem("vnms_nursery_name", name)
+    localStorage.setItem("vnms_nursery_currency", currency)
+    localStorage.setItem("vnms_nursery_location", location)
+    toast({ title: "Profile saved" })
+  }
+
+  return (
+    <Card>
+      <CardHeader><CardTitle>Nursery Profile</CardTitle></CardHeader>
+      <CardContent className="space-y-3">
+        <div className="space-y-1">
+          <Label>Nursery Name</Label>
+          <Input value={name} onChange={e => setName(e.target.value)} />
+        </div>
+        <div className="space-y-1">
+          <Label>Currency</Label>
+          <Input value={currency} onChange={e => setCurrency(e.target.value)} />
+        </div>
+        <div className="space-y-1">
+          <Label>Location</Label>
+          <Input value={location} onChange={e => setLocation(e.target.value)} />
+        </div>
+        <Button onClick={save} className="bg-green-600 hover:bg-green-700 text-white">Save Profile</Button>
+      </CardContent>
+    </Card>
+  )
+}
+
+function OwnerPinCard() {
+  const { toast } = useToast()
+  const [currentPin, setCurrentPin] = useState("")
+  const [newPin, setNewPin] = useState("")
+  const [confirmPin, setConfirmPin] = useState("")
+  const [isDefault, setIsDefault] = useState(false)
+
+  useEffect(() => {
+    setIsDefault(getOwnerPin() === DEFAULT_OWNER_PIN)
+  }, [])
+
+  const handleSave = () => {
+    if (currentPin !== getOwnerPin()) {
+      return toast({ title: "Wrong current PIN", variant: "destructive" })
+    }
+    if (!/^\d{4}$/.test(newPin)) {
+      return toast({ title: "PIN must be 4 digits", variant: "destructive" })
+    }
+    if (newPin !== confirmPin) {
+      return toast({ title: "PINs don't match", variant: "destructive" })
+    }
+    setOwnerPin(newPin)
+    setIsDefault(false)
+    setCurrentPin(""); setNewPin(""); setConfirmPin("")
+    toast({ title: "Owner PIN updated", description: "Use this new PIN for price changes." })
+  }
+
+  return (
+    <Card className={isDefault ? "border-amber-300" : ""}>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2"><Lock className="h-4 w-4" /> Owner PIN</CardTitle>
+        {isDefault && (
+          <p className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-2 mt-2">
+            ⚠ You're using the default PIN <code className="font-mono">1234</code>. Change it now to secure price updates.
+          </p>
+        )}
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <div className="space-y-1">
+          <Label>Current PIN</Label>
+          <Input
+            type="password" maxLength={4} placeholder="••••"
+            value={currentPin}
+            onChange={e => setCurrentPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
+            className="font-mono tracking-[0.5em]"
+          />
+        </div>
+        <div className="space-y-1">
+          <Label>New 4-Digit PIN</Label>
+          <Input
+            type="password" maxLength={4} placeholder="••••"
+            value={newPin}
+            onChange={e => setNewPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
+            className="font-mono tracking-[0.5em]"
+          />
+        </div>
+        <div className="space-y-1">
+          <Label>Confirm New PIN</Label>
+          <Input
+            type="password" maxLength={4} placeholder="••••"
+            value={confirmPin}
+            onChange={e => setConfirmPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
+            className="font-mono tracking-[0.5em]"
+          />
+        </div>
+        <Button onClick={handleSave} className="bg-green-600 hover:bg-green-700 text-white">
+          Update Owner PIN
+        </Button>
+        <p className="text-xs text-muted-foreground">
+          The Owner PIN is required to change pricing. Stored locally on this device.
+        </p>
+      </CardContent>
+    </Card>
+  )
+}
+
 export function SettingsTab() {
   return (
     <div className="space-y-6">
@@ -253,25 +381,9 @@ export function SettingsTab() {
           <PricingSettings />
         </TabsContent>
 
-        <TabsContent value="general" className="mt-4">
-          <Card>
-            <CardHeader><CardTitle>Nursery Profile</CardTitle></CardHeader>
-            <CardContent className="space-y-3">
-              <div className="space-y-1">
-                <Label>Nursery Name</Label>
-                <Input defaultValue="Grace Harvest Seedlings" readOnly className="bg-gray-50" />
-              </div>
-              <div className="space-y-1">
-                <Label>Currency</Label>
-                <Input defaultValue="Kenyan Shillings (Ksh)" readOnly className="bg-gray-50" />
-              </div>
-              <div className="space-y-1">
-                <Label>Location</Label>
-                <Input defaultValue="Kenya" readOnly className="bg-gray-50" />
-              </div>
-              <p className="text-xs text-muted-foreground">Contact your administrator to update nursery profile settings.</p>
-            </CardContent>
-          </Card>
+        <TabsContent value="general" className="mt-4 space-y-4">
+          <NursuryProfileCard />
+          <OwnerPinCard />
         </TabsContent>
       </Tabs>
     </div>

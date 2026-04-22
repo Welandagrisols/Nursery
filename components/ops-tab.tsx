@@ -112,22 +112,40 @@ export function OpsTab() {
 
     setClearing(true)
     try {
-      // Clear data in order due to foreign key constraints
-      const tables = ["sales", "customers", "inventory", "tasks"]
+      // Clear data in order due to foreign key constraints (children first)
+      const tables = [
+        "vnms_task_consumables",
+        "vnms_staff_tasks",
+        "vnms_sachets",
+        "vnms_tray_assignments",
+        "vnms_price_changes",
+        "vnms_stock_alerts",
+        "vnms_broadcast_messages",
+        "vnms_sales",
+        "vnms_batches",
+        "vnms_customers",
+      ]
 
+      const failed: string[] = []
       for (const table of tables) {
-        const { error } = await supabase.from(table).delete().neq("id", "00000000-0000-0000-0000-000000000000") // Delete all records
-
-        if (error) {
-          console.error(`Error clearing ${table}:`, error)
-          // Continue with other tables even if one fails
+        const { error } = await supabase.from(table).delete().neq("id", "00000000-0000-0000-0000-000000000000")
+        if (error && error.code !== "42P01") {
+          failed.push(table)
         }
       }
 
-      toast({
-        title: "Data cleared successfully",
-        description: "All data has been removed from your database",
-      })
+      if (failed.length > 0) {
+        toast({
+          title: "Partial clear",
+          description: `Could not clear: ${failed.join(", ")}`,
+          variant: "destructive",
+        })
+      } else {
+        toast({
+          title: "Data cleared successfully",
+          description: "All sales, customers, plants, and tasks removed.",
+        })
+      }
 
       // Refresh stats after clearing
       await fetchStats()

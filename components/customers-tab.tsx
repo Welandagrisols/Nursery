@@ -38,6 +38,7 @@ interface Plant {
 export function CustomersTab() {
   const [customers, setCustomers] = useState<Customer[]>([])
   const [plants, setPlants] = useState<Plant[]>([])
+  const [customerSales, setCustomerSales] = useState<{ customer_id: string | null; total_amount: number; created_at: string }[]>([])
   const [loading, setLoading] = useState(true)
   const [exporting, setExporting] = useState(false)
   const [searchTerm, setSearchTerm] = useState("")
@@ -72,7 +73,7 @@ export function CustomersTab() {
 
       // If table exists, fetch data
       try {
-        await Promise.all([fetchCustomers(), fetchPlants()])
+        await Promise.all([fetchCustomers(), fetchPlants(), fetchCustomerSales()])
       } catch (error) {
         console.log("Falling back to demo mode due to:", error)
         setCustomers(demoCustomers)
@@ -83,6 +84,18 @@ export function CustomersTab() {
 
     init()
   }, [])
+
+  async function fetchCustomerSales() {
+    try {
+      const { data, error } = await supabase
+        .from("vnms_sales")
+        .select("customer_id, total_amount, created_at")
+      if (error && error.code !== "42P01") throw error
+      setCustomerSales((data as any) || [])
+    } catch {
+      setCustomerSales([])
+    }
+  }
 
   async function fetchCustomers() {
     try {
@@ -370,12 +383,20 @@ export function CustomersTab() {
     }
   }
 
-  // Placeholder for statistics, replace with actual data fetching if needed
+  const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+  const totalRevenue = customerSales.reduce((sum, s) => sum + (s.total_amount || 0), 0)
+  const customersWithRecentSales = new Set(
+    customerSales
+      .filter(s => s.created_at && new Date(s.created_at) > thirtyDaysAgo)
+      .map(s => s.customer_id)
+      .filter(Boolean)
+  )
+
   const stats = {
     totalCustomers: customers.length,
-    activeCustomers: customers.filter(c => new Date(c.created_at) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)).length, // Assuming active means created in last 30 days
-    newCustomers: customers.filter(c => new Date(c.created_at) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)).length, // Same as active for this example
-    totalValue: customers.reduce((sum, customer) => sum + (Number(customer.contact) || 0), 0) // This is a placeholder and likely incorrect for total value
+    activeCustomers: customersWithRecentSales.size,
+    newCustomers: customers.filter(c => new Date(c.created_at) > thirtyDaysAgo).length,
+    totalValue: totalRevenue,
   }
 
 
