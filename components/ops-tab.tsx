@@ -368,9 +368,9 @@ export function OpsTab() {
 
   return (
     <div className="space-y-4 sm:space-y-6 max-w-full overflow-hidden">
-      <div className="space-y-2">
-        <h2 className="text-xl sm:text-2xl font-bold leading-tight">Operations Center</h2>
-        <p className="mobile-text-sm text-muted-foreground">Manage bulk operations, imports, and system settings</p>
+      <div className="modern-header">
+        <h1 className="modern-title">Operations Center</h1>
+        <p className="modern-subtitle">Bulk operations, imports, and system maintenance</p>
       </div>
 
       {/* Statistics Dashboard */}

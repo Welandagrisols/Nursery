@@ -201,32 +201,32 @@ export function SalesTab() {
       </div>
 
       {/* Summary cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <Card>
-          <CardHeader className="px-4 pt-4 pb-1"><CardTitle className="text-xs font-medium text-gray-500">Revenue</CardTitle></CardHeader>
+          <CardHeader className="px-4 pt-4 pb-2"><CardTitle className="text-sm font-medium">Revenue</CardTitle></CardHeader>
           <CardContent className="px-4 pb-4 pt-0">
-            <div className="text-2xl font-black text-blue-600">Ksh {totalSales.toLocaleString()}</div>
+            <div className="text-2xl sm:text-3xl font-bold text-green-600 tabular-nums">Ksh {totalSales.toLocaleString()}</div>
             {filteredSales.length < sales.length && (
-              <div className="text-xs text-gray-400 mt-0.5">{filteredSales.length} of {sales.length} sales</div>
+              <p className="text-xs text-muted-foreground mt-1">{filteredSales.length} of {sales.length} sales</p>
             )}
           </CardContent>
         </Card>
         <Card>
-          <CardHeader className="px-4 pt-4 pb-1"><CardTitle className="text-xs font-medium text-gray-500">Seedlings Sold</CardTitle></CardHeader>
+          <CardHeader className="px-4 pt-4 pb-2"><CardTitle className="text-sm font-medium">Seedlings Sold</CardTitle></CardHeader>
           <CardContent className="px-4 pb-4 pt-0">
-            <div className="text-2xl font-black text-green-600">{totalSeedlings.toLocaleString()}</div>
+            <div className="text-3xl sm:text-4xl font-bold text-green-600 tabular-nums">{totalSeedlings.toLocaleString()}</div>
           </CardContent>
         </Card>
         <Card>
-          <CardHeader className="px-4 pt-4 pb-1"><CardTitle className="text-xs font-medium text-gray-500">Transactions</CardTitle></CardHeader>
+          <CardHeader className="px-4 pt-4 pb-2"><CardTitle className="text-sm font-medium">Transactions</CardTitle></CardHeader>
           <CardContent className="px-4 pb-4 pt-0">
-            <div className="text-2xl font-black text-orange-600">{filteredSales.length}</div>
+            <div className="text-3xl sm:text-4xl font-bold text-orange-600 tabular-nums">{filteredSales.length}</div>
           </CardContent>
         </Card>
         <Card>
-          <CardHeader className="px-4 pt-4 pb-1"><CardTitle className="text-xs font-medium text-gray-500">Avg Sale</CardTitle></CardHeader>
+          <CardHeader className="px-4 pt-4 pb-2"><CardTitle className="text-sm font-medium">Avg Sale</CardTitle></CardHeader>
           <CardContent className="px-4 pb-4 pt-0">
-            <div className="text-2xl font-black text-purple-600">
+            <div className="text-2xl sm:text-3xl font-bold text-orange-600 tabular-nums">
               Ksh {filteredSales.length > 0 ? Math.round(totalSales / filteredSales.length).toLocaleString() : "0"}
             </div>
           </CardContent>
