@@ -1,21 +1,16 @@
-"use client"
-
-import { useState, useEffect, useMemo } from "react"
-import { supabase } from "@/lib/supabase"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Badge } from "@/components/ui/badge"
-import { useToast } from "@/components/ui/use-toast"
-import {
-  MessageCircle, Share2, Link2, Copy, CheckCircle,
-  Facebook, Instagram, Phone, Clock, Users, Package,
-  ChevronRight, AlertCircle, Check, UserCheck, RefreshCw
-} from "lucide-react"
-import { cn } from "@/lib/utils"
+"use client";
+import { useState, useEffect, useMemo } from "react";
+import { supabase } from "@/lib/supabase";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import { useToast } from "@/components/ui/use-toast";
+import { MessageCircle, Share2, Link2, Copy, CheckCircle, Facebook, Instagram, Phone, Clock, Users, Package, AlertCircle, Check, UserCheck, RefreshCw } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 /* ── Message templates ─────────────────────────────────── */
 const TEMPLATES = [
@@ -284,8 +279,7 @@ export function CommsTab() {
                     className={cn(
                       "p-2.5 rounded-xl border-2 text-xs font-semibold text-center transition-all",
                       customerType === opt.value
-                        ? "border-green-600 bg-green-50 text-green-700"
-                        : "border-gray-200 bg-white text-gray-500 hover:border-green-300"
+                        ? "border-green-600 bg-green-50 text-green-700" :"border-gray-200 bg-white text-gray-500 hover:border-green-300"
                     )}
                   >
                     {opt.label}
@@ -373,8 +367,7 @@ export function CommsTab() {
                       className={cn(
                         "flex items-center gap-3 p-3 rounded-xl border-2 text-left transition-all",
                         template === t.id
-                          ? "border-green-600 bg-green-50 text-green-700"
-                          : "border-gray-200 bg-white text-gray-500 hover:border-green-300"
+                          ? "border-green-600 bg-green-50 text-green-700" :"border-gray-200 bg-white text-gray-500 hover:border-green-300"
                       )}
                     >
                       <Icon className="h-5 w-5 shrink-0" />
@@ -418,8 +411,7 @@ export function CommsTab() {
                     className={cn(
                       "w-full gap-2 font-bold",
                       msgCopied
-                        ? "bg-green-600 hover:bg-green-700 text-white"
-                        : "bg-[#25D366] hover:bg-[#1ebe5c] text-white"
+                        ? "bg-green-600 hover:bg-green-700 text-white" :"bg-[#25D366] hover:bg-[#1ebe5c] text-white"
                     )}
                   >
                     {msgCopied

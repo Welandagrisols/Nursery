@@ -1,11 +1,11 @@
-import { supabase } from './supabase'
+import { supabase } from './supabase';
 import { 
   sendEmailNotification, 
   createLowStockNotification, 
   createNewSaleNotification, 
   createTaskDueNotification,
   createInventoryUpdateNotification 
-} from './email-notifications'
+} from './email-notifications';
 
 class NotificationService {
   private isMonitoring = false

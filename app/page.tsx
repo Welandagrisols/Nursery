@@ -1,26 +1,25 @@
-'use client'
-
-import { useState, useEffect } from 'react'
-import { Tabs, TabsContent } from '@/components/ui/tabs'
-import { DashboardTab } from '@/components/dashboard-tab'
-import { InventoryTab } from '@/components/inventory-tab'
-import { SalesTab } from '@/components/sales-tab'
-import { CustomersTab } from '@/components/customers-tab'
-import { TasksTab } from '@/components/tasks-tab'
-import { ReportsTab } from '@/components/reports-tab'
-import { CommsTab } from '@/components/comms-tab'
-import { CreditorsTab } from '@/components/creditors-tab'
-import { OpsTab } from '@/components/ops-tab'
-import { NurseryLayoutTab } from '@/components/nursery-layout-tab'
-import { SettingsTab } from '@/components/settings-tab'
-import { AppSidebar } from '@/components/app-sidebar'
-import { BottomNav } from '@/components/bottom-nav'
-import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar'
-import { DemoModeBanner } from '@/components/demo-mode-banner'
-import { ErrorBoundary } from '@/components/error-boundary'
-import { isDemoMode } from '@/lib/supabase'
-import { useRole, ROLE_TABS } from '@/contexts/role-context'
-import { cn } from '@/lib/utils'
+'use client';
+import { useState, useEffect } from 'react';
+import { Tabs, TabsContent } from '@/components/ui/tabs';
+import { DashboardTab } from '@/components/dashboard-tab';
+import { InventoryTab } from '@/components/inventory-tab';
+import { SalesTab } from '@/components/sales-tab';
+import { CustomersTab } from '@/components/customers-tab';
+import { TasksTab } from '@/components/tasks-tab';
+import { ReportsTab } from '@/components/reports-tab';
+import { CommsTab } from '@/components/comms-tab';
+import { CreditorsTab } from '@/components/creditors-tab';
+import { OpsTab } from '@/components/ops-tab';
+import { NurseryLayoutTab } from '@/components/nursery-layout-tab';
+import { SettingsTab } from '@/components/settings-tab';
+import { AppSidebar } from '@/components/app-sidebar';
+import { BottomNav } from '@/components/bottom-nav';
+import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
+import { DemoModeBanner } from '@/components/demo-mode-banner';
+import { ErrorBoundary } from '@/components/error-boundary';
+import { isDemoMode } from '@/lib/supabase';
+import { useRole, ROLE_TABS } from '@/contexts/role-context';
+import { cn } from '@/lib/utils';
 
 const ROLE_COLOR: Record<string, string> = {
   owner: "bg-purple-600", manager: "bg-blue-600", sales: "bg-orange-500", worker: "bg-green-600",
@@ -70,22 +69,28 @@ export default function HomePage() {
         <div className="flex flex-col flex-1 lg:hidden min-h-screen">
           {/* Top title bar */}
           <header
-            className="sticky top-0 z-20 bg-white border-b border-gray-200 px-4 pb-3 flex items-center justify-between shadow-sm"
-            style={{ paddingTop: 'calc(env(safe-area-inset-top) + 1.75rem)' }}
+            className="sticky top-0 z-20 border-b border-green-100 px-4 pb-3 flex items-center justify-between shadow-sm"
+            style={{
+              paddingTop: 'calc(env(safe-area-inset-top) + 1.75rem)',
+              background: 'linear-gradient(135deg, #e8f5ee 0%, #f0f7ff 100%)',
+            }}
           >
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-green-600 rounded-lg flex items-center justify-center shrink-0">
-                <span className="text-white font-bold text-sm">GH</span>
+              <div
+                className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 shadow-sm"
+                style={{ background: 'linear-gradient(135deg, #22A45D 0%, #16834a 100%)' }}
+              >
+                <span className="text-white font-black text-sm">GH</span>
               </div>
               <div>
-                <p className="font-bold text-sm text-green-700 leading-none">Grace Harvest</p>
+                <p className="font-black text-sm leading-none" style={{ color: '#16834a' }}>Grace Harvest</p>
                 <p className="text-xs text-gray-400 leading-none mt-0.5">Nursery Management</p>
               </div>
             </div>
             {staffUser && (
               <div className="flex items-center gap-2">
                 <div className={cn(
-                  "w-7 h-7 rounded-full flex items-center justify-center text-white font-bold text-xs",
+                  "w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-xs shadow-sm",
                   ROLE_COLOR[staffUser.role] ?? "bg-gray-500"
                 )}>
                   {staffUser.name.charAt(0).toUpperCase()}

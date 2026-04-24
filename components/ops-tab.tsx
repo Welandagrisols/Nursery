@@ -1,9 +1,8 @@
-"use client"
-
-import { useState, useEffect } from "react"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
+"use client";
+import { useState, useEffect } from "react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -14,13 +13,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from "@/components/ui/alert-dialog"
-import { supabase, isDemoMode } from "@/lib/supabase"
-import { useToast } from "@/components/ui/use-toast"
-import { BulkImportForm } from "./bulk-import-form"
-import { BatchStatusManager } from "./batch-status-manager"
-import { DemoData } from "./demo-data"
-import { Package, FileText, TrendingUp, Database, Upload, Settings, Trash2, Loader2, AlertTriangle } from "lucide-react"
+} from "@/components/ui/alert-dialog";
+import { supabase, isDemoMode } from "@/lib/supabase";
+import { useToast } from "@/components/ui/use-toast";
+import { BulkImportForm } from "./bulk-import-form";
+import { BatchStatusManager } from "./batch-status-manager";
+import { DemoData } from "./demo-data";
+import { Package, TrendingUp, Database, Upload, Settings, Trash2, Loader2, AlertTriangle } from "lucide-react";
 
 interface InventoryStats {
   totalPlants: number

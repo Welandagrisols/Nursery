@@ -1,17 +1,16 @@
-"use client"
+"use client";
+import { useState, useEffect, useRef } from "react";
+import { supabase, isDemoMode } from "@/lib/supabase";
+import { useAuth } from "@/contexts/auth-context";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 
-import { useState, useEffect, useRef } from "react"
-import { supabase, isDemoMode } from "@/lib/supabase"
-import { useAuth } from "@/contexts/auth-context"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { Badge } from "@/components/ui/badge"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { useToast } from "@/components/ui/use-toast"
-import { Printer, MessageCircle, CheckCircle2, ShoppingCart, X, Lock } from "lucide-react"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useToast } from "@/components/ui/use-toast";
+import { Printer, MessageCircle, CheckCircle2, ShoppingCart, Lock } from "lucide-react";
 
 interface Batch {
   id: string; plant_name: string; batch_code?: string; lifecycle_status?: string
@@ -94,6 +93,8 @@ export function POSModal({ open, onClose, onSaleComplete }: Props) {
       setNotes("")
     }
   }, [open])
+
+  const cashierName = user?.email?.split("@")[0] || "Admin"
 
   async function fetchData() {
     if (isDemoMode) {
@@ -254,8 +255,6 @@ ${selectedBatch?.batch_code ? `<div class="small">Batch: ${selectedBatch.batch_c
       : `https://wa.me/?text=${encodeURIComponent(lines)}`
     window.open(url, "_blank")
   }
-
-  const cashierName = user?.email?.split("@")[0] || "Admin"
 
   return (
     <Dialog open={open} onOpenChange={v => { if (!v) onClose() }}>

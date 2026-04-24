@@ -1,50 +1,23 @@
-"use client"
+"use client";
+import { useState, useEffect } from "react";
+import { supabase, isDemoMode, checkTableExists } from "@/lib/supabase";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { useToast } from "@/components/ui/use-toast";
+import { EditInventoryForm } from "@/components/edit-inventory-form";
+import { demoInventory } from "@/components/demo-data";
+import { DemoModeBanner } from "@/components/demo-mode-banner";
 
-import { useState, useEffect } from "react"
-import { supabase, isDemoMode, checkTableExists } from "@/lib/supabase"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Badge } from "@/components/ui/badge"
-import { Switch } from "@/components/ui/switch"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
-import { useToast } from "@/components/ui/use-toast"
-import { EditInventoryForm } from "@/components/edit-inventory-form"
-import { demoInventory } from "@/components/demo-data"
-import { DemoModeBanner } from "@/components/demo-mode-banner"
-import { LoadingSpinner } from "@/components/loading-spinner"
-import { 
-  Globe, 
-  Edit, 
-  Trash2, 
-  Eye, 
-  EyeOff, 
-  Package, 
-  Loader2,
-  Droplets,
-  School,
-  ArrowUp,
-  ArrowDown,
-  ImageIcon,
-  Plus,
-  AlertCircle,
-  ExternalLink
-} from "lucide-react"
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { Globe, Edit, Trash2, Eye, EyeOff, Package, Loader2, Droplets, School, ArrowUp, ArrowDown, Plus } from "lucide-react";
+import {  } from "@/components/ui/alert-dialog";
+
 
 interface WaterSource {
   id: string
@@ -495,9 +468,7 @@ export function WebsiteIntegrationTab() {
           <Package className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
           <h3 className="text-lg font-semibold mb-2">No products found</h3>
           <p className="text-muted-foreground">
-            {searchTerm || categoryFilter !== "All Categories" || statusFilter !== "all"
-              ? "Try adjusting your search or filters"
-              : "No products available for website listing"}
+            {searchTerm || categoryFilter !== "All Categories"|| statusFilter !== "all" ?"Try adjusting your search or filters" :"No products available for website listing"}
           </p>
         </div>
       ) : (

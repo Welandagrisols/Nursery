@@ -1,10 +1,9 @@
-"use client"
+"use client";
+import type React from "react";
 
-import type React from "react"
-
-import { useEffect, useState } from "react"
-import { Button } from "@/components/ui/button"
-import { AlertCircle } from "lucide-react"
+import { useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { AlertCircle } from "lucide-react";
 
 interface ErrorBoundaryProps {
   children: React.ReactNode

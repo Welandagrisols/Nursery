@@ -1,25 +1,17 @@
-"use client"
+"use client";
+import type React from "react";
+import { useState, useRef } from "react";
+import { supabase, isDemoMode } from "@/lib/supabase";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
-import type React from "react"
-import { useState, useRef } from "react"
-import { supabase, isDemoMode } from "@/lib/supabase"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { useToast } from "@/components/ui/use-toast"
-import { useIsMobile } from "@/hooks/use-mobile"
-import { uploadImageToSupabase, uploadImageAndLinkToInventory } from "@/lib/image-upload"
-import { notificationService } from "@/lib/notification-service"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useToast } from "@/components/ui/use-toast";
+import { useIsMobile } from "@/hooks/use-mobile";
+
+import { notificationService } from "@/lib/notification-service";
+import {  } from "@/components/ui/dialog";
 
 interface AddInventoryFormProps {
   onSuccess: () => void

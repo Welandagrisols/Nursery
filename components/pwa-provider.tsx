@@ -1,11 +1,9 @@
-
-'use client'
-
-import { useEffect, useState } from 'react'
-import { Button } from '@/components/ui/button'
-import { X, Download, Wifi, WifiOff, Upload } from 'lucide-react'
-import { offlineSync } from '@/lib/offline-sync'
-import { useToast } from '@/components/ui/use-toast'
+'use client';
+import { useEffect, useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { X, Download, Wifi, WifiOff, Upload } from 'lucide-react';
+import { offlineSync } from '@/lib/offline-sync';
+import { useToast } from '@/components/ui/use-toast';
 
 interface BeforeInstallPromptEvent extends Event {
   readonly platforms: string[]

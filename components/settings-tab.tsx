@@ -1,17 +1,16 @@
-"use client"
-
-import { useState, useEffect } from "react"
-import { supabase, isDemoMode } from "@/lib/supabase"
-import { useAuth } from "@/contexts/auth-context"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { useToast } from "@/components/ui/use-toast"
-import { Settings, DollarSign, Lock, Plus, Edit2, Save, X, History, Users } from "lucide-react"
-import { StaffManagement } from "@/components/staff-management"
+"use client";
+import { useState, useEffect } from "react";
+import { supabase, isDemoMode } from "@/lib/supabase";
+import { useAuth } from "@/contexts/auth-context";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { useToast } from "@/components/ui/use-toast";
+import { Settings, DollarSign, Lock, Edit2, Save, X, History, Users } from "lucide-react";
+import { StaffManagement } from "@/components/staff-management";
 
 interface PriceTier {
   id: string

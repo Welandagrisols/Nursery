@@ -1,14 +1,12 @@
-
-"use client"
-
-import { useState } from "react"
-import { supabase, isDemoMode } from "@/lib/supabase"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { useToast } from "@/components/ui/use-toast"
-import { Plus, Upload, X, ImageIcon } from "lucide-react"
+"use client";
+import { useState } from "react";
+import { supabase, isDemoMode } from "@/lib/supabase";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { useToast } from "@/components/ui/use-toast";
+import { Plus, Upload, X, ImageIcon } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -16,8 +14,8 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog"
-import { uploadImageToSupabase } from "@/lib/image-upload"
+} from "@/components/ui/dialog";
+import { uploadImageToSupabase } from "@/lib/image-upload";
 
 interface ImpactStory {
   id: string
@@ -93,8 +91,8 @@ export function AddImpactStoryForm({ category, onStoryAdded }: AddImpactStoryFor
             if (result.success && result.url) {
               mediaUrls.push(result.url)
             }
-          } catch (error) {
-            console.error('Error uploading file:', error)
+          } catch (uploadError) {
+            console.error('Error uploading file:', uploadError)
             toast({
               title: "Warning",
               description: `Failed to upload ${file.name}`,

@@ -1,11 +1,9 @@
+"use client";
 
-"use client"
+import { Button } from "@/components/ui/button";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
-import { Badge } from "@/components/ui/badge"
-import { ThemeToggle } from "@/components/theme-toggle"
+import { ThemeToggle } from "@/components/theme-toggle";
 import { 
   Menu, 
   BarChart3, 
@@ -17,9 +15,9 @@ import {
   Settings,
   Globe,
   Bell
-} from "lucide-react"
-import { useIsMobile } from "@/hooks/use-mobile"
-import { Download } from "lucide-react"
+} from "lucide-react";
+import { useIsMobile } from "@/hooks/use-mobile";
+
 
 interface HeaderProps {
   activeTab: string

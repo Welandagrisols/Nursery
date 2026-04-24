@@ -1,17 +1,16 @@
-"use client"
-
-import { useState, useEffect } from "react"
-import { supabase } from "@/lib/supabase"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { useToast } from "@/components/ui/use-toast"
-import { CreditCard, CheckCircle, AlertTriangle, TrendingDown, User, Phone } from "lucide-react"
-import { cn } from "@/lib/utils"
+"use client";
+import { useState, useEffect } from "react";
+import { supabase } from "@/lib/supabase";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useToast } from "@/components/ui/use-toast";
+import { CreditCard, CheckCircle, AlertTriangle, User, Phone } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface CreditSale {
   id: string
@@ -144,8 +143,7 @@ export function CreditorsTab() {
             className={cn(
               "px-3 py-1.5 rounded-full text-sm font-semibold transition-all",
               filter === f
-                ? "bg-green-600 text-white"
-                : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                ? "bg-green-600 text-white" :"bg-gray-100 text-gray-600 hover:bg-gray-200"
             )}
           >
             {f === "outstanding" ? "Outstanding" : f === "paid" ? "Paid" : "All"}

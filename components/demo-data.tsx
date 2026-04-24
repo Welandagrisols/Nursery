@@ -1,11 +1,10 @@
-"use client"
-
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { useToast } from "@/components/ui/use-toast"
-import { supabase, isDemoMode } from "@/lib/supabase"
-import { Database, Package, Users, TrendingUp, Loader2 } from "lucide-react"
+"use client";
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useToast } from "@/components/ui/use-toast";
+import { supabase, isDemoMode } from "@/lib/supabase";
+import { Database, Package, Users, TrendingUp, Loader2 } from "lucide-react";
 
 // Demo data for when Supabase is not configured
 export const demoInventory = [

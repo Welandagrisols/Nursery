@@ -1,20 +1,19 @@
-"use client"
-
-import { useState, useEffect, useCallback } from "react"
-import { supabase, isDemoMode } from "@/lib/supabase"
-import { Card, CardContent } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { useToast } from "@/components/ui/use-toast"
+"use client";
+import { useState, useEffect, useCallback } from "react";
+import { supabase, isDemoMode } from "@/lib/supabase";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { useToast } from "@/components/ui/use-toast";
 import {
   ChevronDown, ChevronRight, MapPin, Search, Layers,
   Grid3X3, Package, Plus, X, RefreshCw, Info, Sprout,
   CheckCircle2, Calendar, TrendingUp, Truck, Leaf, Clock
-} from "lucide-react"
+} from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────
 
@@ -1409,8 +1408,7 @@ export function NurseryLayoutTab() {
           </h3>
           <p className="text-sm text-gray-400 max-w-xs mx-auto">
             {beds.length === 0
-              ? "Tap \"Add Bed\" to start, then \"Add Row\" to create rows with trays. Trays appear automatically."
-              : "Try a different search term."}
+              ? "Tap \"Add Bed\" to start, then \"Add Row\" to create rows with trays. Trays appear automatically." :"Try a different search term."}
           </p>
         </div>
       ) : (

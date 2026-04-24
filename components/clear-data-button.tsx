@@ -1,11 +1,10 @@
-"use client"
-
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
-import { supabase, isDemoMode } from "@/lib/supabase"
-import { useToast } from "@/components/ui/use-toast"
-import { Trash2, Loader2 } from "lucide-react"
+"use client";
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { supabase, isDemoMode } from "@/lib/supabase";
+import { useToast } from "@/components/ui/use-toast";
+import { Trash2, Loader2 } from "lucide-react";
 
 interface ClearDataButtonProps {
   onDataCleared?: () => void

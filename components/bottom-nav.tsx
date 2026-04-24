@@ -1,15 +1,14 @@
-"use client"
-
-import { useState } from "react"
+"use client";
+import { useState } from "react";
 import {
   BarChart3, Package, Map, ShoppingCart,
   CheckSquare, FileText, MoreHorizontal,
   Users, SlidersHorizontal, Settings, X, LogOut,
   CreditCard, MessageCircle
-} from "lucide-react"
-import { cn } from "@/lib/utils"
-import { useAuth } from "@/contexts/auth-context"
-import { useRole, ROLE_TABS } from "@/contexts/role-context"
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+import { useAuth } from "@/contexts/auth-context";
+import { useRole, ROLE_TABS } from "@/contexts/role-context";
 
 const ALL_PRIMARY = [
   { id: "dashboard",  label: "Dashboard",  icon: BarChart3 },

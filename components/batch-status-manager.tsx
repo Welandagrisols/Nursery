@@ -1,12 +1,11 @@
-"use client"
-
-import { useState, useEffect } from "react"
-import { supabase, isDemoMode } from "@/lib/supabase"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { useToast } from "@/components/ui/use-toast"
-import { Loader2, Package, FileText, Settings, RefreshCw, ArrowRight, ArrowLeft } from "lucide-react"
+"use client";
+import { useState, useEffect } from "react";
+import { supabase, isDemoMode } from "@/lib/supabase";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { useToast } from "@/components/ui/use-toast";
+import { Loader2, Package, Settings, RefreshCw, ArrowRight, ArrowLeft } from "lucide-react";
 
 interface Batch {
   source: string

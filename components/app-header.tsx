@@ -1,10 +1,9 @@
-"use client"
-
-import * as React from "react"
-import { Menu } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { useSidebar } from "@/components/ui/sidebar"
-import { ThemeToggle } from "@/components/theme-toggle"
+"use client";
+import * as React from "react";
+import { Menu } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useSidebar } from "@/components/ui/sidebar";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 interface AppHeaderProps {
   activeTab: string

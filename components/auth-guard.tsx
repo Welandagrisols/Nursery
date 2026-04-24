@@ -1,11 +1,10 @@
-"use client"
-
-import { useAuth } from '@/contexts/auth-context'
-import { useRole } from '@/contexts/role-context'
-import { LoadingSpinner } from '@/components/loading-spinner'
-import { AdminLogin } from '@/components/admin-login'
-import { Button } from "./ui/button"
-import { useState, useEffect } from "react"
+"use client";
+import { useAuth } from '@/contexts/auth-context';
+import { useRole } from '@/contexts/role-context';
+import { LoadingSpinner } from '@/components/loading-spinner';
+import { AdminLogin } from '@/components/admin-login';
+import { Button } from "./ui/button";
+import { useState, useEffect } from "react";
 
 interface AuthGuardProps {
   children: React.ReactNode

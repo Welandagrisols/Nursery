@@ -1,9 +1,7 @@
-
-"use client"
-
-import { AlertTriangle, RefreshCw, Wifi, WifiOff } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+"use client";
+import { AlertTriangle, RefreshCw, WifiOff } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 interface ErrorStateProps {
   error: Error | string

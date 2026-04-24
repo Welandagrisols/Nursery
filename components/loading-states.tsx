@@ -1,8 +1,6 @@
-
-"use client"
-
-import { Loader2, Sprout } from "lucide-react"
-import { cn } from "@/lib/utils"
+"use client";
+import { Sprout } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface LoadingStateProps {
   type?: "spinner" | "skeleton" | "pulse"
