@@ -1,6 +1,6 @@
 
-import { createClient } from "@supabase/supabase-js"
-import type { Database } from "../types/supabase"
+import { createClient } from "@supabase/supabase-js";
+import type { Database } from "../types/supabase";
 
 // Environment variables for Next.js
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL

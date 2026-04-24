@@ -1,18 +1,39 @@
-"use client"
-
-import { useState } from 'react'
-import { useAuth } from '@/contexts/auth-context'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Card, CardContent, CardHeader } from '@/components/ui/card'
-import { Alert, AlertDescription } from '@/components/ui/alert'
-import { LoadingSpinner } from '@/components/loading-spinner'
-import { ThemeToggle } from '@/components/theme-toggle'
-import { StaffPinLogin } from '@/components/staff-pin-login'
-import { Eye, EyeOff, ShieldCheck, Users } from 'lucide-react'
+"use client";
+import { useState } from 'react';
+import { useAuth } from '@/contexts/auth-context';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { LoadingSpinner } from '@/components/loading-spinner';
+import { StaffPinLogin } from '@/components/staff-pin-login';
+import { Eye, EyeOff, ShieldCheck, Users, BarChart3, Package, TrendingUp, ArrowRight, Leaf } from 'lucide-react';
 
 type Screen = "choose" | "owner" | "staff"
+
+const features = [
+  {
+    icon: Package,
+    title: "Inventory Tracking",
+    desc: "Monitor plant batches, stock levels, and tray management in real time.",
+    color: "bg-emerald-50 text-emerald-600",
+    border: "border-emerald-100",
+  },
+  {
+    icon: BarChart3,
+    title: "Sales Analytics",
+    desc: "Track revenue, top customers, and monthly performance at a glance.",
+    color: "bg-blue-50 text-blue-600",
+    border: "border-blue-100",
+  },
+  {
+    icon: TrendingUp,
+    title: "Growth Insights",
+    desc: "Understand your nursery's performance with clear, actionable reports.",
+    color: "bg-violet-50 text-violet-600",
+    border: "border-violet-100",
+  },
+]
 
 export function AdminLogin() {
   const [screen, setScreen] = useState<Screen>("choose")
@@ -67,204 +88,246 @@ export function AdminLogin() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-50 to-white p-4">
-      <div className="absolute top-4 right-4">
-        <ThemeToggle />
-      </div>
+    <div className="min-h-screen flex flex-col" style={{ background: 'linear-gradient(160deg, #e8f5ee 0%, #f0f7ff 50%, #eef6f2 100%)' }}>
 
-      <div className="w-full max-w-sm">
-        {/* Logo */}
-        <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-green-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
-            <span className="text-white font-black text-2xl">GH</span>
-          </div>
-          <h1 className="text-2xl font-black text-green-700">Grace Harvest</h1>
-          <p className="text-gray-500 text-sm mt-1">Vegetable Nursery Management</p>
+      {/* ── Hero Section ── */}
+      <div className="flex flex-col items-center pt-14 pb-10 px-6 text-center">
+        {/* Logo mark */}
+        <div
+          className="w-20 h-20 rounded-3xl flex items-center justify-center mb-5 shadow-lg"
+          style={{ background: 'linear-gradient(135deg, #22A45D 0%, #16834a 100%)' }}
+        >
+          <Leaf className="w-10 h-10 text-white" strokeWidth={1.8} />
         </div>
 
-        <Card className="border border-gray-200 shadow-md">
-          <CardContent className="p-6">
+        <h1 className="text-4xl font-black tracking-tight text-gray-900 leading-none">
+          Grace Harvest
+        </h1>
+        <p className="text-base text-gray-500 mt-2 font-medium">Vegetable Nursery Management System</p>
 
-            {/* CHOOSE SCREEN */}
-            {screen === "choose" && (
-              <div className="space-y-4">
-                <p className="text-center font-semibold text-gray-600 mb-6">How would you like to sign in?</p>
+        <p className="mt-5 text-gray-600 text-sm leading-relaxed max-w-xs">
+          Manage your nursery inventory, track sales, coordinate staff, and grow your business — all in one place.
+        </p>
 
-                <button
-                  onClick={() => setScreen("owner")}
-                  className="w-full flex items-center gap-4 p-5 bg-purple-50 hover:bg-purple-100 border border-purple-200 rounded-2xl transition-all active:scale-[0.98] text-left"
-                >
-                  <div className="w-12 h-12 bg-purple-600 rounded-full flex items-center justify-center shrink-0">
-                    <ShieldCheck className="h-6 w-6 text-white" />
-                  </div>
-                  <div>
-                    <p className="font-bold text-gray-800 text-lg leading-tight">Owner / Manager</p>
-                    <p className="text-sm text-gray-500">Sign in with email & password</p>
-                  </div>
-                </button>
+        {/* CTA button — opens login */}
+        {screen === "choose" && (
+          <button
+            onClick={() => setScreen("owner")}
+            className="mt-7 inline-flex items-center gap-2 px-8 py-3.5 rounded-full text-white font-bold text-base shadow-md transition-all active:scale-95 hover:shadow-lg"
+            style={{ background: 'linear-gradient(135deg, #22A45D 0%, #16834a 100%)' }}
+          >
+            Get Started <ArrowRight className="w-4 h-4" />
+          </button>
+        )}
+      </div>
 
-                <button
-                  onClick={() => setScreen("staff")}
-                  className="w-full flex items-center gap-4 p-5 bg-green-50 hover:bg-green-100 border border-green-200 rounded-2xl transition-all active:scale-[0.98] text-left"
-                >
-                  <div className="w-12 h-12 bg-green-600 rounded-full flex items-center justify-center shrink-0">
-                    <Users className="h-6 w-6 text-white" />
-                  </div>
-                  <div>
-                    <p className="font-bold text-gray-800 text-lg leading-tight">Farm Staff</p>
-                    <p className="text-sm text-gray-500">Select your name &amp; enter PIN</p>
-                  </div>
-                </button>
+      {/* ── Feature Cards ── */}
+      {screen === "choose" && (
+        <div className="px-5 pb-8 space-y-3 max-w-md mx-auto w-full">
+          {features.map((f) => (
+            <div
+              key={f.title}
+              className={`flex items-start gap-4 bg-white rounded-2xl p-4 shadow-sm border ${f.border}`}
+            >
+              <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${f.color}`}>
+                <f.icon className="w-5 h-5" strokeWidth={2} />
               </div>
-            )}
+              <div>
+                <p className="font-bold text-gray-800 text-sm leading-tight">{f.title}</p>
+                <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">{f.desc}</p>
+              </div>
+            </div>
+          ))}
 
-            {/* OWNER LOGIN */}
-            {screen === "owner" && (
-              <div className="space-y-4">
-                <button
-                  onClick={() => { setScreen("choose"); setError('') }}
-                  className="text-sm text-gray-400 hover:text-gray-600 flex items-center gap-1 mb-2"
-                >
-                  ← Back
-                </button>
-                <p className="font-bold text-gray-700 text-lg mb-4">
-                  {mode === 'signin' && 'Owner / Manager Sign In'}
-                  {mode === 'signup' && 'Create Owner / Manager Account'}
-                  {mode === 'forgot' && 'Reset Your Password'}
-                </p>
-
-                <form onSubmit={handleSignIn} className="space-y-4">
-                  <div className="space-y-1.5">
-                    <Label htmlFor="email">Email</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      value={email}
-                      onChange={e => setEmail(e.target.value)}
-                      placeholder="your-email@example.com"
-                      required
-                      disabled={isLoading}
-                      autoComplete="email"
-                    />
-                  </div>
-
-                  {mode !== 'forgot' && (
-                  <div className="space-y-1.5">
-                    <Label htmlFor="password">Password</Label>
-                    <div className="relative">
-                      <Input
-                        id="password"
-                        type={showPassword ? "text" : "password"}
-                        value={password}
-                        onChange={e => setPassword(e.target.value)}
-                        placeholder="Enter your password"
-                        required
-                        disabled={isLoading}
-                        autoComplete="current-password"
-                        className="pr-10"
-                      />
-                      <Button
-                        type="button" variant="ghost" size="sm"
-                        className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
-                        onClick={() => setShowPassword(!showPassword)}
-                        disabled={isLoading}
-                      >
-                        {showPassword ? <EyeOff className="h-4 w-4 text-gray-400" /> : <Eye className="h-4 w-4 text-gray-400" />}
-                      </Button>
-                    </div>
-                  </div>
-                  )}
-
-                  {mode === 'signin' && (
-                    <div className="text-right -mt-2">
-                      <button
-                        type="button"
-                        className="text-sm text-green-700 hover:underline"
-                        onClick={() => { setMode('forgot'); setError(''); setInfo(''); setPassword('') }}
-                      >
-                        Forgot password?
-                      </button>
-                    </div>
-                  )}
-
-                  {error && (
-                    <Alert variant="destructive">
-                      <AlertDescription>{error}</AlertDescription>
-                    </Alert>
-                  )}
-
-                  {info && (
-                    <Alert>
-                      <AlertDescription>{info}</AlertDescription>
-                    </Alert>
-                  )}
-
-                  <Button type="submit" className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 text-base" disabled={isLoading}>
-                    {isLoading ? (
-                      <><LoadingSpinner /><span className="ml-2">
-                        {mode === 'signin' && 'Signing in...'}
-                        {mode === 'signup' && 'Creating account...'}
-                        {mode === 'forgot' && 'Sending email...'}
-                      </span></>
-                    ) : (
-                      <>
-                        {mode === 'signin' && 'Sign In'}
-                        {mode === 'signup' && 'Create Account'}
-                        {mode === 'forgot' && 'Send Reset Link'}
-                      </>
-                    )}
-                  </Button>
-                </form>
-
-                <div className="text-center text-sm text-gray-500 pt-2">
-                  {mode === 'signin' && (
-                    <>Don&apos;t have an account?{' '}
-                      <button
-                        type="button"
-                        className="text-green-700 font-semibold hover:underline"
-                        onClick={() => { setMode('signup'); setError(''); setInfo('') }}
-                      >
-                        Create one
-                      </button>
-                    </>
-                  )}
-                  {mode === 'signup' && (
-                    <>Already have an account?{' '}
-                      <button
-                        type="button"
-                        className="text-green-700 font-semibold hover:underline"
-                        onClick={() => { setMode('signin'); setError(''); setInfo('') }}
-                      >
-                        Sign in
-                      </button>
-                    </>
-                  )}
-                  {mode === 'forgot' && (
-                    <button
-                      type="button"
-                      className="text-green-700 font-semibold hover:underline"
-                      onClick={() => { setMode('signin'); setError(''); setInfo('') }}
-                    >
-                      Back to sign in
-                    </button>
-                  )}
+          {/* Staff sign-in option */}
+          <div className="pt-2">
+            <button
+              onClick={() => setScreen("staff")}
+              className="w-full flex items-center justify-between px-5 py-4 bg-white rounded-2xl border border-gray-200 shadow-sm hover:border-green-300 transition-all active:scale-[0.98]"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-green-50 rounded-xl flex items-center justify-center">
+                  <Users className="w-5 h-5 text-green-600" />
+                </div>
+                <div className="text-left">
+                  <p className="font-bold text-gray-800 text-sm">Farm Staff Login</p>
+                  <p className="text-xs text-gray-400">Select your name &amp; enter PIN</p>
                 </div>
               </div>
-            )}
+              <ArrowRight className="w-4 h-4 text-gray-400" />
+            </button>
+          </div>
+        </div>
+      )}
 
-            {/* STAFF PIN LOGIN */}
-            {screen === "staff" && (
-              <StaffPinLogin onBack={() => setScreen("choose")} />
-            )}
+      {/* ── Owner Login Form ── */}
+      {screen === "owner" && (
+        <div className="flex-1 flex flex-col items-center px-5 pb-10">
+          <div className="w-full max-w-md bg-white rounded-3xl shadow-lg border border-gray-100 p-6">
+            <button
+              onClick={() => { setScreen("choose"); setError(''); setInfo('') }}
+              className="text-sm text-gray-400 hover:text-gray-600 flex items-center gap-1 mb-5"
+            >
+              ← Back
+            </button>
 
-          </CardContent>
-        </Card>
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-10 h-10 bg-purple-100 rounded-xl flex items-center justify-center">
+                <ShieldCheck className="w-5 h-5 text-purple-600" />
+              </div>
+              <div>
+                <p className="font-black text-gray-800 text-lg leading-tight">
+                  {mode === 'signin' && 'Owner / Manager'}
+                  {mode === 'signup' && 'Create Account'}
+                  {mode === 'forgot' && 'Reset Password'}
+                </p>
+                <p className="text-xs text-gray-400">
+                  {mode === 'signin' && 'Sign in with your credentials'}
+                  {mode === 'signup' && 'Set up your owner account'}
+                  {mode === 'forgot' && 'We\'ll send a reset link'}
+                </p>
+              </div>
+            </div>
 
-        {/* Platform footer */}
-        <p className="text-center text-xs text-gray-400 mt-8">
-          Powered by <span className="font-semibold text-gray-500">Agrisols Systems</span>
-        </p>
-      </div>
+            <form onSubmit={handleSignIn} className="space-y-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="email" className="text-sm font-semibold text-gray-700">Email address</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
+                  placeholder="your@email.com"
+                  required
+                  disabled={isLoading}
+                  autoComplete="email"
+                  className="h-11 rounded-xl border-gray-200 focus:border-green-400 focus:ring-green-400"
+                />
+              </div>
+
+              {mode !== 'forgot' && (
+                <div className="space-y-1.5">
+                  <Label htmlFor="password" className="text-sm font-semibold text-gray-700">Password</Label>
+                  <div className="relative">
+                    <Input
+                      id="password"
+                      type={showPassword ? "text" : "password"}
+                      value={password}
+                      onChange={e => setPassword(e.target.value)}
+                      placeholder="Enter your password"
+                      required
+                      disabled={isLoading}
+                      autoComplete="current-password"
+                      className="h-11 rounded-xl border-gray-200 focus:border-green-400 focus:ring-green-400 pr-10"
+                    />
+                    <button
+                      type="button"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                      onClick={() => setShowPassword(!showPassword)}
+                      disabled={isLoading}
+                    >
+                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {mode === 'signin' && (
+                <div className="text-right -mt-1">
+                  <button
+                    type="button"
+                    className="text-xs text-green-700 hover:underline font-medium"
+                    onClick={() => { setMode('forgot'); setError(''); setInfo(''); setPassword('') }}
+                  >
+                    Forgot password?
+                  </button>
+                </div>
+              )}
+
+              {error && (
+                <Alert variant="destructive" className="rounded-xl">
+                  <AlertDescription className="text-sm">{error}</AlertDescription>
+                </Alert>
+              )}
+
+              {info && (
+                <Alert className="rounded-xl border-green-200 bg-green-50">
+                  <AlertDescription className="text-sm text-green-700">{info}</AlertDescription>
+                </Alert>
+              )}
+
+              <Button
+                type="submit"
+                disabled={isLoading}
+                className="w-full h-12 rounded-xl text-white font-bold text-base shadow-md transition-all hover:shadow-lg"
+                style={{ background: 'linear-gradient(135deg, #22A45D 0%, #16834a 100%)' }}
+              >
+                {isLoading ? (
+                  <><LoadingSpinner /><span className="ml-2">
+                    {mode === 'signin' && 'Signing in...'}
+                    {mode === 'signup' && 'Creating account...'}
+                    {mode === 'forgot' && 'Sending email...'}
+                  </span></>
+                ) : (
+                  <>
+                    {mode === 'signin' && 'Sign In'}
+                    {mode === 'signup' && 'Create Account'}
+                    {mode === 'forgot' && 'Send Reset Link'}
+                  </>
+                )}
+              </Button>
+            </form>
+
+            <div className="text-center text-sm text-gray-500 pt-4">
+              {mode === 'signin' && (
+                <>Don&apos;t have an account?{' '}
+                  <button
+                    type="button"
+                    className="text-green-700 font-semibold hover:underline"
+                    onClick={() => { setMode('signup'); setError(''); setInfo('') }}
+                  >
+                    Create one
+                  </button>
+                </>
+              )}
+              {mode === 'signup' && (
+                <>Already have an account?{' '}
+                  <button
+                    type="button"
+                    className="text-green-700 font-semibold hover:underline"
+                    onClick={() => { setMode('signin'); setError(''); setInfo('') }}
+                  >
+                    Sign in
+                  </button>
+                </>
+              )}
+              {mode === 'forgot' && (
+                <button
+                  type="button"
+                  className="text-green-700 font-semibold hover:underline"
+                  onClick={() => { setMode('signin'); setError(''); setInfo('') }}
+                >
+                  Back to sign in
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Staff PIN Login ── */}
+      {screen === "staff" && (
+        <div className="flex-1 flex flex-col items-center px-5 pb-10">
+          <div className="w-full max-w-md bg-white rounded-3xl shadow-lg border border-gray-100 p-6">
+            <StaffPinLogin onBack={() => setScreen("choose")} />
+          </div>
+        </div>
+      )}
+
+      {/* ── Footer ── */}
+      <p className="text-center text-xs text-gray-400 pb-8 mt-auto">
+        Powered by <span className="font-semibold text-gray-500">Agrisols Systems</span>
+      </p>
     </div>
   )
 }

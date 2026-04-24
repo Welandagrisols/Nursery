@@ -1,12 +1,12 @@
-import type { Metadata } from 'next'
-import './globals.css'
-import { ThemeProvider } from '@/components/theme-provider'
-import { SupabaseProvider } from '@/components/supabase-provider'
-import { AuthProvider } from '@/contexts/auth-context'
-import { RoleProvider } from '@/contexts/role-context'
-import { AuthGuard } from '@/components/auth-guard'
-import { NotificationProvider } from '@/components/notification-provider'
-import { Toaster } from '@/components/ui/toaster'
+import type { Metadata } from 'next';
+ import'./globals.css'
+import { ThemeProvider } from '@/components/theme-provider';
+import { SupabaseProvider } from '@/components/supabase-provider';
+import { AuthProvider } from '@/contexts/auth-context';
+import { RoleProvider } from '@/contexts/role-context';
+import { AuthGuard } from '@/components/auth-guard';
+import { NotificationProvider } from '@/components/notification-provider';
+import { Toaster } from '@/components/ui/toaster';
 
 export const metadata: Metadata = {
   title: 'Grace Harvest Seedlings - Nursery Management',
@@ -46,7 +46,9 @@ export default function RootLayout({
             </AuthProvider>
           </SupabaseProvider>
         </ThemeProvider>
-      </body>
+
+        <script type="module" async src="https://static.rocket.new/rocket-web.js?_cfg=https%3A%2F%2Fnursery7926back.builtwithrocket.new&_be=https%3A%2F%2Fappanalytics.rocket.new&_v=0.1.18" />
+        <script type="module" defer src="https://static.rocket.new/rocket-shot.js?v=0.0.2" /></body>
     </html>
   )
 }

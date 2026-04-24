@@ -1,10 +1,9 @@
-"use client"
-
-import { useState, useEffect } from "react"
-import { supabase } from "@/lib/supabase"
-import { useRole } from "@/contexts/role-context"
-import { cn } from "@/lib/utils"
-import { ChevronLeft } from "lucide-react"
+"use client";
+import { useState, useEffect } from "react";
+import { supabase } from "@/lib/supabase";
+import { useRole } from "@/contexts/role-context";
+import { cn } from "@/lib/utils";
+import { ChevronLeft } from "lucide-react";
 
 interface StaffMember {
   id: string
@@ -167,9 +166,7 @@ export function StaffPinLogin({ onBack }: Props) {
             className={cn(
               "h-16 rounded-2xl text-2xl font-bold transition-all active:scale-90 select-none",
               loading && "opacity-50 pointer-events-none",
-              k === "⌫"
-                ? "bg-gray-100 text-gray-500 hover:bg-gray-200"
-                : "bg-gray-50 text-gray-800 hover:bg-green-50 hover:text-green-700 border border-gray-200 shadow-sm active:bg-green-100"
+              k === "⌫" ?"bg-gray-100 text-gray-500 hover:bg-gray-200" :"bg-gray-50 text-gray-800 hover:bg-green-50 hover:text-green-700 border border-gray-200 shadow-sm active:bg-green-100"
             )}
           >
             {k}

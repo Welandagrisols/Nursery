@@ -1,5 +1,5 @@
 
-import { z } from "zod"
+import { z } from "zod";
 
 export const inventorySchema = z.object({
   plant_name: z.string().min(1, "Plant name is required").max(255),

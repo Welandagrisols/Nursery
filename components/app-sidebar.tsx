@@ -1,6 +1,5 @@
-"use client"
-
-import * as React from "react"
+"use client";
+import * as React from "react";
 import {
   BarChart3,
   Package,
@@ -13,7 +12,7 @@ import {
   LogOut,
   Map,
   SlidersHorizontal,
-} from "lucide-react"
+} from "lucide-react";
 
 import {
   Sidebar,
@@ -26,10 +25,11 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   useSidebar,
-} from "@/components/ui/sidebar"
-import { Button } from "@/components/ui/button"
-import { useAuth } from "@/contexts/auth-context"
-import { cn } from "@/lib/utils" // Import cn for className merging
+} from "@/components/ui/sidebar";
+import { Button } from "@/components/ui/button";
+import { useAuth } from "@/contexts/auth-context";
+import { cn } from "@/lib/utils";
+ // Import cn for className merging
 
 const navigationItems = [
   { id: "dashboard", title: "Dashboard", icon: BarChart3 },

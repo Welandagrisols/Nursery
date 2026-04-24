@@ -1,32 +1,15 @@
-"use client"
+"use client";
+import { useState, useEffect } from "react";
+import { supabase, isDemoMode, checkTableExists } from "@/lib/supabase";
+import { useToast } from "@/components/ui/use-toast";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
 
-import { useState, useEffect } from "react"
-import { supabase, isDemoMode, checkTableExists } from "@/lib/supabase"
-import { useToast } from "@/components/ui/use-toast"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Badge } from "@/components/ui/badge"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { AlertCircle, ShoppingCart, Package, TrendingUp, TrendingDown, Sprout, DollarSign, Activity, Crown, Award, Medal, Users, Calendar } from "lucide-react"
-import { demoInventory, demoSales, demoCustomers } from "@/components/demo-data"
-import { DemoModeBanner } from "@/components/demo-mode-banner"
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
-  LineChart,
-  Line,
-  Legend,
-  Area,
-  AreaChart,
-} from "recharts"
+import { AlertCircle, Sprout, Crown, Award, Medal } from "lucide-react";
+import { demoInventory, demoSales, demoCustomers } from "@/components/demo-data";
+import { DemoModeBanner } from "@/components/demo-mode-banner";
+import { XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Line, Legend, Area, AreaChart,  } from "recharts";
 
 const COLORS = ['#4CB76F', '#FF7A29', '#3B82F6', '#8B5CF6', '#EC4899', '#F59E0B', '#10B981', '#6366F1']
 

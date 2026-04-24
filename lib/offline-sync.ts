@@ -1,6 +1,6 @@
 
-import { supabase } from './supabase'
-import { offlineStorage } from './offline-storage'
+import { supabase } from './supabase';
+import { offlineStorage } from './offline-storage';
 
 class OfflineSync {
   private isOnline = typeof navigator !== 'undefined' ? navigator.onLine : true

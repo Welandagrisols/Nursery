@@ -1,6 +1,6 @@
-import { AlertCircle, Database } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import Link from "next/link"
+import { AlertCircle, Database } from "lucide-react";
+
+import Link from "next/link";
 
 interface DemoModeBannerProps {
   isDemoMode: boolean
@@ -28,9 +28,7 @@ export function DemoModeBanner({ isDemoMode, connectionStatus }: DemoModeBannerP
         </h3>
       </div>
       <p className="text-orange-700 mt-2">
-        {connectionStatus === 'connecting' 
-          ? 'Attempting to connect to your Supabase database...'
-          : 'Using sample data. Connect to Supabase for real data persistence.'
+        {connectionStatus === 'connecting' ?'Attempting to connect to your Supabase database...' :'Using sample data. Connect to Supabase for real data persistence.'
         }
       </p>
       {isDemoMode && (

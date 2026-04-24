@@ -1,16 +1,14 @@
-
-"use client"
-
-import { useState, useEffect } from 'react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Switch } from '@/components/ui/switch'
-import { Label } from '@/components/ui/label'
-import { Input } from '@/components/ui/input'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { Bell, Mail, AlertCircle, TrendingUp, CheckSquare } from 'lucide-react'
-import { toast } from '@/hooks/use-toast'
-import { supabase } from '@/lib/supabase'
+"use client";
+import { useState, useEffect } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Bell, Mail, AlertCircle, TrendingUp, CheckSquare } from 'lucide-react';
+import { toast } from '@/hooks/use-toast';
+import { supabase } from '@/lib/supabase';
 
 export function NotificationSettings() {
   const [settings, setSettings] = useState({

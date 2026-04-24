@@ -1,6 +1,5 @@
-"use client"
-
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+"use client";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 interface FinancialSummaryProps {
   inventory: any[]

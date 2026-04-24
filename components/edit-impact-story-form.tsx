@@ -1,14 +1,12 @@
-
-"use client"
-
-import { useState } from "react"
-import { supabase, isDemoMode } from "@/lib/supabase"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { useToast } from "@/components/ui/use-toast"
-import { Edit, Upload, X, ImageIcon, ExternalLink } from "lucide-react"
+"use client";
+import { useState } from "react";
+import { supabase, isDemoMode } from "@/lib/supabase";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { useToast } from "@/components/ui/use-toast";
+import { Edit, Upload, X, ImageIcon, ExternalLink } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -16,9 +14,9 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog"
-import { Badge } from "@/components/ui/badge"
-import { uploadImageToSupabase } from "@/lib/image-upload"
+} from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
+import { uploadImageToSupabase } from "@/lib/image-upload";
 
 interface ImpactStory {
   id: string
@@ -90,8 +88,8 @@ export function EditImpactStoryForm({ story, onStoryUpdated }: EditImpactStoryFo
             if (result.success && result.url) {
               newMediaUrls.push(result.url)
             }
-          } catch (error) {
-            console.error('Error uploading file:', error)
+          } catch (uploadError) {
+            console.error('Error uploading file:', uploadError)
             toast({
               title: "Warning",
               description: `Failed to upload ${file.name}`,

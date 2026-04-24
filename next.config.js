@@ -2,18 +2,15 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   eslint: {
-    ignoreDuringBuilds: true,
-  },
+    ignoreDuringBuilds: true},
   typescript: {
-    ignoreBuildErrors: true,
-  },
+    ignoreBuildErrors: true},
   images: {
     remotePatterns: [
       {
         protocol: 'https',
         hostname: 'mjsuwlpixcregiikiusd.supabase.co',
-        pathname: '/storage/v1/object/public/**',
-      }
+        pathname: '/storage/v1/object/public/**'}
     ],
     unoptimized: true
   },
@@ -28,10 +25,7 @@ const nextConfig = {
               ? 'no-cache, no-store, must-revalidate'
               : 'public, max-age=3600, must-revalidate'
           },
-          {
-            key: 'X-Frame-Options',
-            value: 'ALLOWALL'
-          },
+          
           {
             key: 'Content-Security-Policy',
             value: "frame-ancestors *"

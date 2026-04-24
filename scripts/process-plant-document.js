@@ -1,5 +1,5 @@
 // Process the uploaded plant document and create inventory entries
-import { createClient } from "@supabase/supabase-js"
+import { createClient } from "@supabase/supabase-js";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
@@ -83,11 +83,11 @@ const plantData = [
 
 async function importPlants() {
   console.log("Starting bulk plant import...")
-  console.log(`Processing ${plantData.length} plants`)
+  console.log(`Processing ${plantData?.length} plants`)
 
-  const inventoryData = plantData.map((plant, index) => {
+  const inventoryData = plantData?.map((plant, index) => {
     // Generate SKU
-    const prefix = plant.category.substring(0, 3).toUpperCase()
+    const prefix = plant?.category?.substring(0, 3)?.toUpperCase()
     const randomNum = Math.floor(1000 + Math.random() * 9000)
     const sku = `${prefix}${randomNum}`
 
@@ -95,7 +95,7 @@ async function importPlants() {
     let price = 50 // Default price
     let batchCost = 3000 // Default batch cost for 100 seedlings
 
-    switch (plant.category) {
+    switch (plant?.category) {
       case "Indigenous Trees":
         price = 45
         batchCost = 2500
@@ -123,9 +123,9 @@ async function importPlants() {
     }
 
     return {
-      plant_name: plant.name,
-      scientific_name: plant.scientific,
-      category: plant.category,
+      plant_name: plant?.name,
+      scientific_name: plant?.scientific,
+      category: plant?.category,
       quantity: 100, // Default as requested
       price: price,
       batch_cost: batchCost,
@@ -136,9 +136,9 @@ async function importPlants() {
       ready_for_sale: true,
       source: "Bulk Import - Document",
       age: "6 months",
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    }
+      created_at: new Date()?.toISOString(),
+      updated_at: new Date()?.toISOString(),
+    };
   })
 
   try {
@@ -146,22 +146,22 @@ async function importPlants() {
     const batchSize = 10
     let totalInserted = 0
 
-    for (let i = 0; i < inventoryData.length; i += batchSize) {
-      const batch = inventoryData.slice(i, i + batchSize)
+    for (let i = 0; i < inventoryData?.length; i += batchSize) {
+      const batch = inventoryData?.slice(i, i + batchSize)
 
-      console.log(`Inserting batch ${Math.floor(i / batchSize) + 1}/${Math.ceil(inventoryData.length / batchSize)}`)
+      console.log(`Inserting batch ${Math.floor(i / batchSize) + 1}/${Math.ceil(inventoryData?.length / batchSize)}`)
 
-      const { data, error } = await supabase.from("inventory").insert(batch).select()
+      const { data, error } = await supabase?.from("inventory")?.insert(batch)?.select()
 
       if (error) {
         console.error("Error inserting batch:", error)
         console.error(
           "Failed batch:",
-          batch.map((item) => item.plant_name),
+          batch?.map((item) => item?.plant_name),
         )
       } else {
-        totalInserted += batch.length
-        console.log(`Successfully inserted ${batch.length} plants`)
+        totalInserted += batch?.length
+        console.log(`Successfully inserted ${batch?.length} plants`)
       }
 
       // Small delay between batches
@@ -169,18 +169,18 @@ async function importPlants() {
     }
 
     console.log(`\n✅ Import completed!`)
-    console.log(`📊 Total plants processed: ${plantData.length}`)
+    console.log(`📊 Total plants processed: ${plantData?.length}`)
     console.log(`✅ Successfully imported: ${totalInserted}`)
-    console.log(`❌ Failed imports: ${plantData.length - totalInserted}`)
+    console.log(`❌ Failed imports: ${plantData?.length - totalInserted}`)
 
     // Summary by category
     const categorySummary = {}
-    inventoryData.forEach((plant) => {
-      categorySummary[plant.category] = (categorySummary[plant.category] || 0) + 1
+    inventoryData?.forEach((plant) => {
+      categorySummary[plant.category] = (categorySummary?.[plant?.category] || 0) + 1
     })
 
     console.log("\n📋 Summary by category:")
-    Object.entries(categorySummary).forEach(([category, count]) => {
+    Object.entries(categorySummary)?.forEach(([category, count]) => {
       console.log(`  ${category}: ${count} plants`)
     })
   } catch (error) {

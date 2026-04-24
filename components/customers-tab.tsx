@@ -1,23 +1,22 @@
-"use client"
-
-import { useState, useEffect } from "react"
-import { supabase, isDemoMode, checkTableExists } from "@/lib/supabase"
-import { useAuth } from "@/contexts/auth-context"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Badge } from "@/components/ui/badge"
-import { Separator } from "@/components/ui/separator"
-import { AddCustomerForm } from "@/components/add-customer-form"
-import { useToast } from "@/components/ui/use-toast"
-import { demoCustomers, demoInventory } from "@/components/demo-data"
-import { DemoModeBanner } from "@/components/demo-mode-banner"
-import { exportToExcel } from "@/lib/excel-export"
-import { Download, Loader2, MessageSquare, Send, Users, Phone, Mail, Calendar, Copy, Trash2, Package, ExternalLink, Check } from "lucide-react"
+"use client";
+import { useState, useEffect } from "react";
+import { supabase, isDemoMode, checkTableExists } from "@/lib/supabase";
+import { useAuth } from "@/contexts/auth-context";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { AddCustomerForm } from "@/components/add-customer-form";
+import { useToast } from "@/components/ui/use-toast";
+import { demoCustomers, demoInventory } from "@/components/demo-data";
+import { DemoModeBanner } from "@/components/demo-mode-banner";
+import { exportToExcel } from "@/lib/excel-export";
+import { Download, Loader2, MessageSquare, Send, Users, Phone, Mail, Calendar, Copy, Trash2, ExternalLink, Check } from "lucide-react";
 
 interface Customer {
   id: string
@@ -441,8 +440,7 @@ export function CustomersTab() {
                         disabled={isDemoMode || !tableExists}
                         title={
                           isDemoMode || !tableExists
-                            ? "Connect to Supabase and set up tables to enable adding customers"
-                            : "Add new customer"
+                            ? "Connect to Supabase and set up tables to enable adding customers" :"Add new customer"
                         }
                         onClick={() => setDialogOpen(true)}
                       >
@@ -868,8 +866,7 @@ export function CustomersTab() {
                   onClick={() => handleLinkClick(index)}
                   className={`flex items-center justify-between p-3 rounded-lg border transition-colors ${
                     link.opened 
-                      ? "bg-green-50 border-green-200 dark:bg-green-950 dark:border-green-800" 
-                      : "bg-background hover:bg-muted"
+                      ? "bg-green-50 border-green-200 dark:bg-green-950 dark:border-green-800" :"bg-background hover:bg-muted"
                   } ${index === nextUnopenedIndex ? "ring-2 ring-green-500" : ""}`}
                 >
                   <div className="flex-1">

@@ -1,17 +1,16 @@
-"use client"
+"use client";
+import { useState, useEffect } from "react";
+import { supabase, isDemoMode, checkTableExists } from "@/lib/supabase";
+import { useToast } from "@/components/ui/use-toast";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Download, Loader2, TrendingUp, TrendingDown, Minus, BarChart3, Star, Award } from "lucide-react";
 
-import { useState, useEffect } from "react"
-import { supabase, isDemoMode, checkTableExists } from "@/lib/supabase"
-import { useToast } from "@/components/ui/use-toast"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Download, Loader2, TrendingUp, TrendingDown, Minus, Package, BarChart3, Star, Award } from "lucide-react"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import { DemoModeBanner } from "./demo-mode-banner"
-import { exportToExcel } from "@/lib/excel-export"
+import { DemoModeBanner } from "./demo-mode-banner";
+import { exportToExcel } from "@/lib/excel-export";
 
 // Demo data for reports
 const demoReportsData = [

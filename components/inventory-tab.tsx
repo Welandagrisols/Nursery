@@ -1,25 +1,24 @@
-"use client"
-
-import { useState, useEffect } from "react"
-import { supabase, isDemoMode, checkTableExists } from "@/lib/supabase"
-import { useAuth } from "@/contexts/auth-context"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Badge } from "@/components/ui/badge"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { AddInventoryForm } from "@/components/add-inventory-form"
-import { AddConsumableForm } from "@/components/add-consumable-form"
-import { AddHoneyForm } from "@/components/add-honey-form"
-import { EditInventoryForm } from "@/components/edit-inventory-form"
-import { useToast } from "@/components/ui/use-toast"
-import { demoInventory } from "@/components/demo-data"
-import { DemoModeBanner } from "@/components/demo-mode-banner"
-import { exportToExcel, formatInventoryForExport } from "@/lib/excel-export"
-import { Download, Loader2, Plus, Edit, Trash2, Package, FileText, TrendingUp, ShoppingCart, Sprout } from "lucide-react"
-import { AddSachetForm } from "@/components/add-sachet-form"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+"use client";
+import { useState, useEffect } from "react";
+import { supabase, isDemoMode, checkTableExists } from "@/lib/supabase";
+import { useAuth } from "@/contexts/auth-context";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { AddInventoryForm } from "@/components/add-inventory-form";
+import { AddConsumableForm } from "@/components/add-consumable-form";
+import { AddHoneyForm } from "@/components/add-honey-form";
+import { EditInventoryForm } from "@/components/edit-inventory-form";
+import { useToast } from "@/components/ui/use-toast";
+import { demoInventory } from "@/components/demo-data";
+import { DemoModeBanner } from "@/components/demo-mode-banner";
+import { exportToExcel, formatInventoryForExport } from "@/lib/excel-export";
+import { Download, Loader2, Plus, Edit, Trash2, Package, ShoppingCart, Sprout } from "lucide-react";
+import { AddSachetForm } from "@/components/add-sachet-form";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export function InventoryTab() {
   const [inventory, setInventory] = useState<any[]>([])
@@ -527,9 +526,7 @@ export function InventoryTab() {
               <Package className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
               <h3 className="text-lg font-semibold mb-2">No plants found</h3>
               <p className="text-muted-foreground mb-4">
-                {searchTerm || categoryFilter !== "All Categories"
-                  ? "Try adjusting your search or filters"
-                  : "Start by adding your first plant"}
+                {searchTerm || categoryFilter !== "All Categories" ?"Try adjusting your search or filters" :"Start by adding your first plant"}
               </p>
               <Dialog open={addPlantDialogOpen} onOpenChange={setAddPlantDialogOpen}>
                 <DialogTrigger asChild>
@@ -624,13 +621,9 @@ export function InventoryTab() {
                           <Badge
                             variant="outline"
                             className={`text-xs h-5 ${
-                              item.status === "Healthy"
-                                ? "bg-green-100 text-green-800 border-green-200"
-                                : item.status === "Attention"
-                                ? "bg-yellow-100 text-yellow-800 border-yellow-200"
-                                : item.status === "Critical"
-                                ? "bg-red-100 text-red-800 border-red-200"
-                                : "bg-gray-100 text-gray-800 border-gray-200"
+                              item.status === "Healthy" ?"bg-green-100 text-green-800 border-green-200"
+                                : item.status === "Attention" ?"bg-yellow-100 text-yellow-800 border-yellow-200"
+                                : item.status === "Critical" ?"bg-red-100 text-red-800 border-red-200" :"bg-gray-100 text-gray-800 border-gray-200"
                             }`}
                           >
                             {item.status}
@@ -677,9 +670,7 @@ export function InventoryTab() {
               <ShoppingCart className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
               <h3 className="text-lg font-semibold mb-2">No Honey Products found</h3>
               <p className="text-muted-foreground mb-4">
-                {searchTerm || categoryFilter !== "All Categories"
-                  ? "Try adjusting your search or filters"
-                  : "Start by adding your first Honey Product"}
+                {searchTerm || categoryFilter !== "All Categories" ?"Try adjusting your search or filters" :"Start by adding your first Honey Product"}
               </p>
               <Dialog open={addHoneyDialogOpen} onOpenChange={setAddHoneyDialogOpen}>
                 <DialogTrigger asChild>
@@ -771,11 +762,8 @@ export function InventoryTab() {
                           <Badge
                             variant="outline"
                             className={`text-xs h-5 ${
-                              item.status === "Available"
-                                ? "bg-green-100 text-green-800 border-green-200"
-                                : item.status === "Low Stock"
-                                ? "bg-yellow-100 text-yellow-800 border-yellow-200"
-                                : "bg-red-100 text-red-800 border-red-200"
+                              item.status === "Available" ?"bg-green-100 text-green-800 border-green-200"
+                                : item.status === "Low Stock" ?"bg-yellow-100 text-yellow-800 border-yellow-200" :"bg-red-100 text-red-800 border-red-200"
                             }`}
                           >
                             {item.status}
@@ -788,8 +776,7 @@ export function InventoryTab() {
                               variant="outline"
                               className={`text-xs h-5 ${
                                 item.ready_for_sale
-                                  ? "bg-green-100 text-green-800 border-green-200"
-                                  : "bg-gray-100 text-gray-800 border-gray-200"
+                                  ? "bg-green-100 text-green-800 border-green-200" :"bg-gray-100 text-gray-800 border-gray-200"
                               }`}
                             >
                               {item.ready_for_sale ? "✅ Listed" : "⏸️ Hidden"}
@@ -832,9 +819,7 @@ export function InventoryTab() {
               <ShoppingCart className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
               <h3 className="text-lg font-semibold mb-2">No consumables found</h3>
               <p className="text-muted-foreground mb-4">
-                {searchTerm || categoryFilter !== "All Categories"
-                  ? "Try adjusting your search or filters"
-                  : "Start by adding your first consumable"}
+                {searchTerm || categoryFilter !== "All Categories" ?"Try adjusting your search or filters" :"Start by adding your first consumable"}
               </p>
               <Dialog open={addConsumableDialogOpen} onOpenChange={setAddConsumableDialogOpen}>
                 <DialogTrigger asChild>
@@ -924,11 +909,8 @@ export function InventoryTab() {
                           <Badge
                             variant="outline"
                             className={`text-xs h-5 ${
-                              item.status === "Available"
-                                ? "bg-green-100 text-green-800 border-green-200"
-                                : item.status === "Low Stock"
-                                ? "bg-yellow-100 text-yellow-800 border-yellow-200"
-                                : "bg-red-100 text-red-800 border-red-200"
+                              item.status === "Available" ?"bg-green-100 text-green-800 border-green-200"
+                                : item.status === "Low Stock" ?"bg-yellow-100 text-yellow-800 border-yellow-200" :"bg-red-100 text-red-800 border-red-200"
                             }`}
                           >
                             {item.status}
@@ -975,8 +957,7 @@ export function InventoryTab() {
                       </div>
                       <span className={`text-xs px-2 py-0.5 rounded-full font-medium border ${
                         s.status === 'available' ? 'bg-green-50 text-green-700 border-green-200' :
-                        s.status === 'partially_used' ? 'bg-amber-50 text-amber-700 border-amber-200' :
-                        'bg-gray-100 text-gray-600 border-gray-200'
+                        s.status === 'partially_used'? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-gray-100 text-gray-600 border-gray-200'
                       }`}>
                         {s.status?.replace('_', ' ')}
                       </span>

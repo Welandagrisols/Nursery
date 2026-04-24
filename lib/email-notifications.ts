@@ -1,5 +1,5 @@
 
-import { supabase } from './supabase'
+import { supabase } from './supabase';
 
 // Email configuration
 const NOTIFICATION_EMAILS = [

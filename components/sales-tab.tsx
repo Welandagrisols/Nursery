@@ -1,21 +1,20 @@
-"use client"
-
-import { useState, useEffect, useMemo } from "react"
-import { supabase, isDemoMode, checkTableExists } from "@/lib/supabase"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { AddSaleForm } from "@/components/add-sale-form"
-import { useToast } from "@/components/ui/use-toast"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { demoSales } from "@/components/demo-data"
-import { DemoModeBanner } from "@/components/demo-mode-banner"
-import { exportToExcel, formatSalesForExport } from "@/lib/excel-export"
-import { Download, Loader2, Lock, ShoppingCart, Search, Calendar, X, Receipt } from "lucide-react"
-import { POSModal } from "@/components/pos-modal"
-import { ReceiptModal, type ReceiptSale } from "@/components/receipt-modal"
-import { cn } from "@/lib/utils"
+"use client";
+import { useState, useEffect, useMemo } from "react";
+import { supabase, isDemoMode, checkTableExists } from "@/lib/supabase";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { AddSaleForm } from "@/components/add-sale-form";
+import { useToast } from "@/components/ui/use-toast";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { demoSales } from "@/components/demo-data";
+import { DemoModeBanner } from "@/components/demo-mode-banner";
+import { exportToExcel, formatSalesForExport } from "@/lib/excel-export";
+import { Download, Loader2, Lock, ShoppingCart, Search, Calendar, X, Receipt } from "lucide-react";
+import { POSModal } from "@/components/pos-modal";
+import { ReceiptModal, type ReceiptSale } from "@/components/receipt-modal";
+import { cn } from "@/lib/utils";
 
 interface SaleData {
   id: string
@@ -465,8 +464,7 @@ export function SalesTab() {
                           "px-2 py-0.5 rounded-full font-medium",
                           sale.payment_method === "M-Pesa"        ? "bg-green-100 text-green-700" :
                           sale.payment_method === "Credit"         ? "bg-amber-100 text-amber-700" :
-                          sale.payment_method === "Bank Transfer"  ? "bg-blue-100 text-blue-700"  :
-                          "bg-gray-100 text-gray-600"
+                          sale.payment_method === "Bank Transfer"? "bg-blue-100 text-blue-700"  : "bg-gray-100 text-gray-600"
                         )}>
                           {sale.payment_method || "Cash"}
                         </span>

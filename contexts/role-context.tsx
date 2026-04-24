@@ -1,7 +1,6 @@
-"use client"
-
-import { createContext, useContext, useState, useEffect, ReactNode } from "react"
-import { supabase } from "@/lib/supabase"
+"use client";
+import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { supabase } from "@/lib/supabase";
 
 export type StaffRole = "owner" | "manager" | "sales" | "worker"
 

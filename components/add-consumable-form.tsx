@@ -1,16 +1,8 @@
-"use client"
-
-import type React from "react"
-import { useState } from "react"
-import { supabase, isDemoMode } from "@/lib/supabase"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog"
+"use client";
+import type React from "react";
+import { useState } from "react";
+import { supabase, isDemoMode } from "@/lib/supabase";
+import {  } from "@/components/ui/dialog";
 
 type Inventory = {
   plant_name: string;
@@ -26,12 +18,12 @@ type Inventory = {
   created_at?: string;
   updated_at?: string;
 };
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { useToast } from "@/components/ui/use-toast"
-import { useIsMobile } from "@/hooks/use-mobile"
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useToast } from "@/components/ui/use-toast";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface AddConsumableFormProps {
   onSuccess: () => void

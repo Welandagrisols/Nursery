@@ -1,8 +1,7 @@
-"use client"
-
-import { Dialog, DialogContent } from "@/components/ui/dialog"
-import { Button } from "@/components/ui/button"
-import { Printer, MessageCircle, X } from "lucide-react"
+"use client";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Printer, MessageCircle, X } from "lucide-react";
 
 export interface ReceiptSale {
   id: string
