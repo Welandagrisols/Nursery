@@ -68,11 +68,27 @@ export function CreditorsTab() {
 
   const markAsPaid = async () => {
     if (!payDialog) return
+    const receivedAmount = Number(payDialog.amount)
+    const expectedAmount = Number(payDialog.sale.total_amount)
+    if (!Number.isFinite(receivedAmount) || receivedAmount <= 0) {
+      toast({ title: "Invalid amount", description: "Enter a valid amount received.", variant: "destructive" })
+      return
+    }
+    if (Math.abs(receivedAmount - expectedAmount) > 0.01) {
+      toast({
+        title: "Full settlement required",
+        description: `This sale can only be closed when full amount (Ksh ${expectedAmount.toLocaleString()}) is collected.`,
+        variant: "destructive",
+      })
+      return
+    }
+
     setPaying(true)
     const { error } = await (supabase.from("vnms_sales") as any)
       .update({
         payment_method: `Credit (Paid — ${payDialog.method})`,
-        notes: `${payDialog.sale.notes ?? ""} | Paid: Ksh ${payDialog.amount} via ${payDialog.method} on ${new Date().toLocaleDateString()}`.trim(),
+        payment_reference: `${payDialog.method}:${receivedAmount.toFixed(2)}`,
+        notes: `${payDialog.sale.notes ?? ""} | Paid in full: Ksh ${receivedAmount.toFixed(2)} via ${payDialog.method} on ${new Date().toLocaleDateString()}`.trim(),
       })
       .eq("id", payDialog.sale.id)
 

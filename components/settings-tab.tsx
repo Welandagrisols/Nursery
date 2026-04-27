@@ -35,18 +35,6 @@ interface PriceChange {
   changed_at: string
 }
 
-const OWNER_PIN_KEY = "vnms_owner_pin"
-const DEFAULT_OWNER_PIN = "1234"
-
-function getOwnerPin(): string {
-  if (typeof window === "undefined") return DEFAULT_OWNER_PIN
-  return localStorage.getItem(OWNER_PIN_KEY) || DEFAULT_OWNER_PIN
-}
-
-function setOwnerPin(newPin: string) {
-  if (typeof window !== "undefined") localStorage.setItem(OWNER_PIN_KEY, newPin)
-}
-
 const DEFAULT_TIERS = [
   { crop_type: "All", customer_type: "Walk-in",       min_quantity: 1,    max_quantity: 499,    price_per_seedling: 10 },
   { crop_type: "All", customer_type: "Small Wholesale", min_quantity: 500,  max_quantity: 1999,   price_per_seedling: 9 },
@@ -65,6 +53,7 @@ function PricingSettings() {
   const [pinDialog, setPinDialog] = useState(false)
   const [pin, setPin] = useState("")
   const [pendingEdit, setPendingEdit] = useState<{ id: string; newPrice: number; tier: PriceTier } | null>(null)
+  const [verifyingPin, setVerifyingPin] = useState(false)
 
   useEffect(() => { fetchPricing() }, [])
 
@@ -109,11 +98,25 @@ function PricingSettings() {
   }
 
   async function confirmWithPin() {
-    if (pin !== getOwnerPin()) {
-      toast({ title: "Wrong PIN", description: "Incorrect owner PIN.", variant: "destructive" }); return
+    if (!/^\d{4}$/.test(pin)) {
+      toast({ title: "Wrong PIN", description: "Enter a valid 4-digit owner PIN.", variant: "destructive" }); return
     }
     if (!pendingEdit) return
     const { id, newPrice, tier } = pendingEdit
+
+    setVerifyingPin(true)
+    const { data: isValid, error: verifyError } = await (supabase.rpc("vnms_verify_owner_pin", {
+      p_pin: pin,
+    }) as any)
+    setVerifyingPin(false)
+
+    if (verifyError) {
+      toast({ title: "Verification failed", description: verifyError.message, variant: "destructive" }); return
+    }
+    if (!isValid) {
+      toast({ title: "Wrong PIN", description: "Incorrect owner PIN.", variant: "destructive" }); return
+    }
+
     setPinDialog(false)
 
     if (!isDemoMode) {
@@ -220,12 +223,14 @@ function PricingSettings() {
             <Input
               type="password" placeholder="••••"
               value={pin} onChange={e => setPin(e.target.value)}
-              onKeyDown={e => { if (e.key === 'Enter') confirmWithPin() }}
+              onKeyDown={e => { if (e.key === 'Enter' && !verifyingPin) confirmWithPin() }}
               autoFocus
             />
             <div className="flex gap-2">
-              <Button variant="outline" onClick={() => setPinDialog(false)} className="flex-1">Cancel</Button>
-              <Button onClick={confirmWithPin} className="flex-1 bg-green-600 hover:bg-green-700 text-white">Confirm</Button>
+              <Button variant="outline" onClick={() => setPinDialog(false)} className="flex-1" disabled={verifyingPin}>Cancel</Button>
+              <Button onClick={confirmWithPin} className="flex-1 bg-green-600 hover:bg-green-700 text-white" disabled={verifyingPin}>
+                {verifyingPin ? "Checking..." : "Confirm"}
+              </Button>
             </div>
           </div>
         </DialogContent>
@@ -281,48 +286,70 @@ function OwnerPinCard() {
   const [currentPin, setCurrentPin] = useState("")
   const [newPin, setNewPin] = useState("")
   const [confirmPin, setConfirmPin] = useState("")
-  const [isDefault, setIsDefault] = useState(false)
+  const [isConfigured, setIsConfigured] = useState(false)
+  const [checkingConfig, setCheckingConfig] = useState(true)
+  const [saving, setSaving] = useState(false)
 
   useEffect(() => {
-    setIsDefault(getOwnerPin() === DEFAULT_OWNER_PIN)
+    ;(async () => {
+      const { data, error } = await (supabase.rpc("vnms_is_owner_pin_configured") as any)
+      if (error) {
+        toast({ title: "Could not load PIN settings", description: error.message, variant: "destructive" })
+      } else {
+        setIsConfigured(Boolean(data))
+      }
+      setCheckingConfig(false)
+    })()
   }, [])
 
-  const handleSave = () => {
-    if (currentPin !== getOwnerPin()) {
-      return toast({ title: "Wrong current PIN", variant: "destructive" })
-    }
+  const handleSave = async () => {
     if (!/^\d{4}$/.test(newPin)) {
       return toast({ title: "PIN must be 4 digits", variant: "destructive" })
     }
     if (newPin !== confirmPin) {
       return toast({ title: "PINs don't match", variant: "destructive" })
     }
-    setOwnerPin(newPin)
-    setIsDefault(false)
+    setSaving(true)
+    const { data, error } = await (supabase.rpc("vnms_set_owner_pin", {
+      p_current_pin: currentPin || null,
+      p_new_pin: newPin,
+    }) as any)
+    setSaving(false)
+
+    if (error) {
+      return toast({ title: "PIN update failed", description: error.message, variant: "destructive" })
+    }
+    if (!data) {
+      return toast({ title: "Wrong current PIN", variant: "destructive" })
+    }
+
+    setIsConfigured(true)
     setCurrentPin(""); setNewPin(""); setConfirmPin("")
-    toast({ title: "Owner PIN updated", description: "Use this new PIN for price changes." })
+    toast({ title: "Owner PIN updated", description: "PIN checks are now done securely by Supabase." })
   }
 
   return (
-    <Card className={isDefault ? "border-amber-300" : ""}>
+    <Card className={!isConfigured && !checkingConfig ? "border-amber-300" : ""}>
       <CardHeader>
         <CardTitle className="flex items-center gap-2"><Lock className="h-4 w-4" /> Owner PIN</CardTitle>
-        {isDefault && (
+        {!checkingConfig && !isConfigured && (
           <p className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-2 mt-2">
-            ⚠ You're using the default PIN <code className="font-mono">1234</code>. Change it now to secure price updates.
+            Owner PIN is not set yet. Configure a 4-digit PIN to protect pricing changes.
           </p>
         )}
       </CardHeader>
       <CardContent className="space-y-3">
-        <div className="space-y-1">
-          <Label>Current PIN</Label>
-          <Input
-            type="password" maxLength={4} placeholder="••••"
-            value={currentPin}
-            onChange={e => setCurrentPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
-            className="font-mono tracking-[0.5em]"
-          />
-        </div>
+        {isConfigured && (
+          <div className="space-y-1">
+            <Label>Current PIN</Label>
+            <Input
+              type="password" maxLength={4} placeholder="••••"
+              value={currentPin}
+              onChange={e => setCurrentPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
+              className="font-mono tracking-[0.5em]"
+            />
+          </div>
+        )}
         <div className="space-y-1">
           <Label>New 4-Digit PIN</Label>
           <Input
@@ -341,11 +368,11 @@ function OwnerPinCard() {
             className="font-mono tracking-[0.5em]"
           />
         </div>
-        <Button onClick={handleSave} className="bg-green-600 hover:bg-green-700 text-white">
-          Update Owner PIN
+        <Button onClick={handleSave} className="bg-green-600 hover:bg-green-700 text-white" disabled={saving || checkingConfig}>
+          {saving ? "Updating..." : isConfigured ? "Update Owner PIN" : "Set Owner PIN"}
         </Button>
         <p className="text-xs text-muted-foreground">
-          The Owner PIN is required to change pricing. Stored locally on this device.
+          The Owner PIN is required to change pricing. PIN validation is done server-side in Supabase.
         </p>
       </CardContent>
     </Card>
@@ -361,14 +388,14 @@ export function SettingsTab() {
       </div>
 
       <Tabs defaultValue="staff" className="w-full">
-        <TabsList className="grid w-full max-w-sm grid-cols-3">
-          <TabsTrigger value="staff" className="flex items-center gap-1">
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="staff" className="flex items-center justify-center gap-1 text-xs sm:text-sm">
             <Users className="h-3 w-3" /> Staff
           </TabsTrigger>
-          <TabsTrigger value="pricing" className="flex items-center gap-1">
+          <TabsTrigger value="pricing" className="flex items-center justify-center gap-1 text-xs sm:text-sm">
             <DollarSign className="h-3 w-3" /> Pricing
           </TabsTrigger>
-          <TabsTrigger value="general" className="flex items-center gap-1">
+          <TabsTrigger value="general" className="flex items-center justify-center gap-1 text-xs sm:text-sm">
             <Settings className="h-3 w-3" /> General
           </TabsTrigger>
         </TabsList>

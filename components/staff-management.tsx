@@ -18,7 +18,6 @@ interface StaffMember {
   id: string
   name: string
   role: string
-  pin: string
   is_active: boolean
   created_at: string
   notes?: string
@@ -108,7 +107,7 @@ export function StaffManagement() {
           notes: form.notes.trim(),
           updated_at: new Date().toISOString(),
         }
-        if (form.pin) payload.pin = form.pin
+        if (form.pin) payload.pin_hash = form.pin
 
         const { error } = await (supabase.from("vnms_staff") as any)
           .update(payload)
@@ -120,7 +119,7 @@ export function StaffManagement() {
           .insert({
             name: form.name.trim(),
             role: form.role,
-            pin: form.pin,
+            pin_hash: form.pin,
             notes: form.notes.trim(),
             is_active: true,
           })
@@ -160,7 +159,7 @@ export function StaffManagement() {
     return (
       <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-800">
         <p className="font-semibold mb-1">Staff table not set up yet</p>
-        <p>Run the SQL in <code className="bg-amber-100 px-1 rounded">scripts/vnms-staff-migration.sql</code> in your Supabase dashboard to enable staff management.</p>
+        <p>Run <code className="bg-amber-100 px-1 rounded">scripts/vnms-staff-migration.sql</code> and <code className="bg-amber-100 px-1 rounded">scripts/secure-pin-auth.sql</code> in Supabase to enable secure staff PIN authentication.</p>
       </div>
     )
   }

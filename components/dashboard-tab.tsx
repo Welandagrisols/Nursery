@@ -288,7 +288,7 @@ export function DashboardTab() {
       const bestSellersData = processBestSellers(salesData || [])
       setBestSellers(bestSellersData)
 
-      const categoryData = processCategorySales(salesData || [])
+      const categoryData = processCategorySales(salesData || [], inventoryData || [])
       setCategorySales(categoryData)
 
       let customersData: any[] = []
@@ -371,11 +371,15 @@ export function DashboardTab() {
     return result
   }
 
-  function processCategorySales(sales: any[]) {
+  function processCategorySales(sales: any[], inventory: any[]) {
     const categoryMap = new Map<string, number>()
+    const batchCategoryById = new Map<string, string>()
+    inventory.forEach((item: any) => {
+      if (item.id) batchCategoryById.set(item.id, item.category || "Other")
+    })
 
     sales.forEach(sale => {
-      const category = (sale as any).customer_type || 'Other'
+      const category = batchCategoryById.get((sale as any).batch_id) || (sale as any).category || "Other"
       const current = categoryMap.get(category) || 0
       categoryMap.set(category, current + sale.total_amount)
     })
@@ -387,6 +391,10 @@ export function DashboardTab() {
 
   function processTopCustomers(sales: any[], customers: any[]) {
     const customerMap = new Map<string, { totalSpent: number; purchases: number; name: string }>()
+    const customerNameById = new Map<string, string>()
+    customers.forEach((customer: any) => {
+      if (customer.id) customerNameById.set(customer.id, customer.name || "Unknown Customer")
+    })
 
     sales.forEach(sale => {
       const customerId = sale.customer_id
@@ -395,7 +403,7 @@ export function DashboardTab() {
         return
       }
       
-      const customerName = sale.customer?.name || 'Unknown Customer'
+      const customerName = customerNameById.get(customerId) || sale.customer_name || 'Unknown Customer'
       const current = customerMap.get(customerId) || { totalSpent: 0, purchases: 0, name: customerName }
       current.totalSpent += sale.total_amount
       current.purchases += 1

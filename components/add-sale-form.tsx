@@ -162,7 +162,7 @@ export function AddSaleForm({ onSuccess }: AddSaleFormProps) {
       return
     }
 
-    if (!dataFromForm.inventory_id || dataFromForm.quantity <= 0 || dataFromForm.total_amount <= 0) {
+    if (!dataFromForm.inventory_id || dataFromForm.quantity <= 0) {
       toast({
         title: "Validation Error",
         description: "Please select an item and enter a valid quantity",
@@ -181,7 +181,20 @@ export function AddSaleForm({ onSuccess }: AddSaleFormProps) {
       return
     }
 
-    if (Number(dataFromForm.quantity) > selectedInventoryItem.quantity) {
+    const quantityToSell = Number(dataFromForm.quantity)
+    const unitPrice = Number(selectedInventoryItem.price || 0)
+    const computedTotalAmount = quantityToSell * unitPrice
+
+    if (computedTotalAmount <= 0) {
+      toast({
+        title: "Validation Error",
+        description: "Selected item has an invalid selling price.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    if (quantityToSell > selectedInventoryItem.quantity) {
       toast({
         title: "Insufficient Stock",
         description: `Cannot sell ${dataFromForm.quantity} units. Only ${selectedInventoryItem.quantity} available.`,
@@ -195,6 +208,15 @@ export function AddSaleForm({ onSuccess }: AddSaleFormProps) {
       toast({
         title: "Validation Error",
         description: "Please fill in customer name and contact for new customer",
+        variant: "destructive",
+      })
+      return
+    }
+
+    if (paymentMethod === "Credit" && !customerIdFromForm(dataFromForm, isNewCustomer)) {
+      toast({
+        title: "Customer Required",
+        description: "Credit sales must be linked to a customer.",
         variant: "destructive",
       })
       return
@@ -232,16 +254,52 @@ export function AddSaleForm({ onSuccess }: AddSaleFormProps) {
         console.log("Customer created with ID:", customerId)
       }
 
+      const stockAfterSale = selectedInventoryItem.quantity - quantityToSell
+
+      // Reserve stock first with optimistic concurrency control
+      const { data: stockUpdateRows, error: stockUpdateError } = await (supabase.from("vnms_batches") as any)
+        .update({
+          quantity: stockAfterSale,
+          available_stock: stockAfterSale,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", dataFromForm.inventory_id)
+        .eq("quantity", selectedInventoryItem.quantity)
+        .select("id")
+
+      if (stockUpdateError) {
+        toast({
+          title: "Error",
+          description: `Failed to reserve stock: ${stockUpdateError.message}`,
+          variant: "destructive",
+        })
+        return
+      }
+      if (!stockUpdateRows || stockUpdateRows.length === 0) {
+        toast({
+          title: "Stock Changed",
+          description: "Stock was updated by another sale. Please retry.",
+          variant: "destructive",
+        })
+        await fetchInventory()
+        return
+      }
+
       // Insert the sale record
       console.log("Inserting sale record...")
       const { data: saleData, error: saleError } = await supabase
         .from("vnms_sales")
         .insert({
           inventory_id: dataFromForm.inventory_id,
-          quantity: Number(dataFromForm.quantity),
+          batch_id: dataFromForm.inventory_id,
+          batch_code: selectedInventoryItem.sku || null,
+          plant_name: selectedInventoryItem.plant_name || null,
+          quantity: quantityToSell,
+          unit_price: unitPrice,
           sale_date: dataFromForm.sale_date,
           customer_id: customerId,
-          total_amount: Number(dataFromForm.total_amount),
+          customer_name: isNewCustomer ? dataFromForm.customer_name?.trim() : null,
+          total_amount: computedTotalAmount,
           payment_method: paymentMethod,
           payment_reference: paymentMethod === "M-Pesa" ? mpesaRef || null : null,
         } as any)
@@ -249,6 +307,16 @@ export function AddSaleForm({ onSuccess }: AddSaleFormProps) {
         .single()
 
       if (saleError) {
+        // Rollback stock reservation if sale insert fails.
+        await (supabase.from("vnms_batches") as any)
+          .update({
+            quantity: selectedInventoryItem.quantity,
+            available_stock: selectedInventoryItem.quantity,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", dataFromForm.inventory_id)
+          .eq("quantity", stockAfterSale)
+
         console.error("Sale insert error:", saleError)
         toast({
           title: "Error",
@@ -258,24 +326,6 @@ export function AddSaleForm({ onSuccess }: AddSaleFormProps) {
         return
       }
       console.log("Sale recorded:", saleData)
-
-      // Update inventory quantity
-      const newQuantity = selectedInventoryItem.quantity - Number(dataFromForm.quantity)
-      console.log("Updating inventory quantity to:", newQuantity)
-      
-      const { error: inventoryError } = await supabase
-        .from("vnms_batches")
-        .update({ quantity: newQuantity } as any)
-        .eq("id", dataFromForm.inventory_id)
-
-      if (inventoryError) {
-        console.error("Inventory update error:", inventoryError)
-        toast({
-          title: "Warning",
-          description: "Sale recorded but inventory update failed. Please check inventory manually.",
-          variant: "destructive",
-        })
-      }
 
       console.log("Sale transaction completed successfully")
 
@@ -316,6 +366,11 @@ export function AddSaleForm({ onSuccess }: AddSaleFormProps) {
     } finally {
       setLoading(false)
     }
+  }
+
+  function customerIdFromForm(form: any, createNew: boolean): string | null {
+    if (createNew) return form.customer_name && form.customer_contact ? "new" : null
+    return form.customer_id || null
   }
 
   return (

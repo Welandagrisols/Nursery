@@ -1,5 +1,28 @@
 
 /** @type {import('next').NextConfig} */
+const rawSupabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ""
+const normalizedSupabaseUrl = rawSupabaseUrl.startsWith("https://")
+  ? rawSupabaseUrl
+  : rawSupabaseUrl
+    ? `https://${rawSupabaseUrl}.supabase.co`
+    : ""
+
+let supabaseHostname = ""
+try {
+  supabaseHostname = normalizedSupabaseUrl ? new URL(normalizedSupabaseUrl).hostname : ""
+} catch {
+  supabaseHostname = ""
+}
+
+const remotePatterns = []
+if (supabaseHostname) {
+  remotePatterns.push({
+    protocol: 'https',
+    hostname: supabaseHostname,
+    pathname: '/storage/v1/object/public/**',
+  })
+}
+
 const nextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
@@ -8,13 +31,7 @@ const nextConfig = {
     ignoreBuildErrors: true,
   },
   images: {
-    remotePatterns: [
-      {
-        protocol: 'https',
-        hostname: 'mjsuwlpixcregiikiusd.supabase.co',
-        pathname: '/storage/v1/object/public/**',
-      }
-    ],
+    remotePatterns,
     unoptimized: true
   },
   async headers() {

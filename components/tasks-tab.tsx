@@ -226,8 +226,8 @@ export function TasksTab() {
               {tasks.length === 0 ? "No tasks found. Add your first task!" : "No tasks match your filters."}
             </div>
           ) : (
-            <div className="rounded-md border overflow-hidden">
-              <Table>
+            <div className="rounded-md border overflow-x-auto">
+              <Table className="min-w-[760px]">
               <TableHeader>
                 <TableRow>
                   <TableHead className="min-w-[200px]">Task Details</TableHead>

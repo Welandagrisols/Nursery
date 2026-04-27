@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS vnms_staff (
   id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name        TEXT NOT NULL,
   role        TEXT NOT NULL CHECK (role IN ('owner', 'manager', 'sales', 'worker')),
-  pin         TEXT NOT NULL CHECK (length(pin) = 4 AND pin ~ '^\d{4}$'),
+  pin_hash    TEXT NOT NULL,
   is_active   BOOLEAN NOT NULL DEFAULT true,
   notes       TEXT,
   created_at  TIMESTAMP WITH TIME ZONE DEFAULT NOW(),

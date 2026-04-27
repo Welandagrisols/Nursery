@@ -176,6 +176,8 @@ export function AddTaskForm({ onSuccess }: AddTaskFormProps) {
 
       const laborCost = parseFloat(formData.labor_cost) || 0
       const consumablesCost = calculateTotalConsumablesCost()
+      const totalCost = laborCost + consumablesCost
+      let createdTaskId: string | null = null
 
       console.log("Inserting task...")
       const { data: taskData, error: taskError } = await supabase
@@ -190,6 +192,7 @@ export function AddTaskForm({ onSuccess }: AddTaskFormProps) {
           labor_hours: parseFloat(formData.labor_hours) || null,
           labor_rate: parseFloat(formData.labor_rate) || null,
           consumables_cost: consumablesCost,
+          total_cost: totalCost,
           status: formData.status,
           assigned_to: formData.assigned_to,
         } as any)
@@ -202,6 +205,7 @@ export function AddTaskForm({ onSuccess }: AddTaskFormProps) {
       }
 
       console.log("Task added:", taskData)
+      createdTaskId = (taskData as any).id || null
 
       if (consumableUsages.length > 0 && taskData) {
         const usageInserts = consumableUsages
@@ -219,6 +223,9 @@ export function AddTaskForm({ onSuccess }: AddTaskFormProps) {
           const { error: usageError } = await supabase.from("vnms_task_consumables").insert(usageInserts as any)
           if (usageError) {
             console.error("Consumables insert error:", usageError)
+            if (createdTaskId) {
+              await (supabase.from("vnms_staff_tasks") as any).delete().eq("id", createdTaskId)
+            }
             throw usageError
           }
         }

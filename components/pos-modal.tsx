@@ -135,10 +135,33 @@ export function POSModal({ open, onClose, onSaleComplete }: Props) {
     if (paymentMethod === "M-Pesa" && !mpesaRef.trim()) {
       toast({ title: "M-Pesa reference required", description: "Enter the M-Pesa transaction reference.", variant: "destructive" }); return
     }
+    if (paymentMethod === "Credit" && customerId === "walk-in") {
+      toast({ title: "Customer required", description: "Credit sales must be linked to a customer.", variant: "destructive" }); return
+    }
 
     setConfirming(true)
     try {
+      const saleDate = new Date().toISOString().split("T")[0]
+      const stockAfterSale = availableStock - qty
+
+      // Reserve stock first; if stock changed since fetch, abort cleanly.
+      const { data: stockUpdateRows, error: stockUpdateError } = await (supabase.from("vnms_batches") as any)
+        .update({
+          quantity: stockAfterSale,
+          available_stock: stockAfterSale,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", batchId)
+        .eq("quantity", availableStock)
+        .select("id")
+
+      if (stockUpdateError) throw stockUpdateError
+      if (!stockUpdateRows || stockUpdateRows.length === 0) {
+        throw new Error("Stock changed before confirmation. Please retry the sale.")
+      }
+
       const saleData: any = {
+        inventory_id: batchId,
         batch_id: batchId,
         batch_code: selectedBatch?.batch_code || null,
         plant_name: selectedBatch?.plant_name,
@@ -151,22 +174,25 @@ export function POSModal({ open, onClose, onSaleComplete }: Props) {
         payment_method: paymentMethod,
         payment_reference: mpesaRef || null,
         receipt_number: receiptNumber,
-        sale_date: new Date().toISOString().split("T")[0],
+        sale_date: saleDate,
         notes: notes || null,
         is_voided: false,
       }
 
       if (!isDemoMode) {
         const { error: saleError } = await supabase.from("vnms_sales").insert(saleData)
-        if (saleError) throw saleError
-
-        // Deduct stock from batch
-        const newQty = Math.max(0, availableStock - qty)
-        await (supabase.from("vnms_batches") as any).update({
-          quantity: newQty,
-          available_stock: newQty,
-          updated_at: new Date().toISOString(),
-        }).eq("id", batchId)
+        if (saleError) {
+          // Roll back stock reservation if sale insert fails.
+          await (supabase.from("vnms_batches") as any)
+            .update({
+              quantity: availableStock,
+              available_stock: availableStock,
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", batchId)
+            .eq("quantity", stockAfterSale)
+          throw saleError
+        }
       }
 
       toast({ title: "Sale recorded!", description: `${receiptNumber} — Ksh ${totalAmount.toLocaleString()}` })

@@ -3,8 +3,19 @@ import { createClient } from "@supabase/supabase-js"
 import type { Database } from "../types/supabase"
 
 // Environment variables for Next.js
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANAON_KEY
+const rawSupabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+const normalizeSupabaseUrl = (value?: string): string | undefined => {
+  if (!value) return undefined
+  const trimmed = value.trim()
+  if (!trimmed) return undefined
+  if (trimmed.startsWith("https://")) return trimmed
+  // Allow project refs in env and normalize them to the full Supabase URL.
+  return `https://${trimmed}.supabase.co`
+}
+
+const supabaseUrl = normalizeSupabaseUrl(rawSupabaseUrl)
 
 console.log("Supabase URL:", supabaseUrl)
 console.log("Supabase Key:", supabaseAnonKey ? "Set" : "Not set")
@@ -21,24 +32,27 @@ export const isDemoMode =
   !supabaseAnonKey ||
   !hasValidUrl ||
   !hasValidKey ||
-  supabaseUrl === "your-project-url" ||
+  rawSupabaseUrl === "your-project-url" ||
   supabaseAnonKey === "your-anon-key"
 
 console.log("Is Demo Mode:", isDemoMode)
 
-// If in demo mode, log the reason
+// If env config is invalid, fail fast with a clear message.
 if (isDemoMode) {
-  console.log("Demo mode reason:", {
+  const details = {
     hasUrl: !!supabaseUrl,
     hasValidUrl,
     hasKey: !!supabaseAnonKey,
     hasValidKey,
-  })
+  }
+  console.error("Invalid Supabase environment configuration:", details)
+  throw new Error(
+    "Missing or invalid Supabase environment variables. Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in .env.local."
+  )
 }
 
-// Use valid demo values when in demo mode to prevent URL constructor errors
-const validSupabaseUrl = isDemoMode ? "https://demo.supabase.co" : supabaseUrl!
-const validSupabaseAnonKey = isDemoMode ? "demo-key" : supabaseAnonKey!
+const validSupabaseUrl = supabaseUrl!
+const validSupabaseAnonKey = supabaseAnonKey!
 
 // Create a single supabase client for internal use only
 export const supabase = createClient<Database>(validSupabaseUrl, validSupabaseAnonKey, {

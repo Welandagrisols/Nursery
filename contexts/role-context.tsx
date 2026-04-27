@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useState, useEffect, ReactNode } from "react"
 import { supabase } from "@/lib/supabase"
+import { compare } from "bcryptjs"
 
 export type StaffRole = "owner" | "manager" | "sales" | "worker"
 
@@ -54,14 +55,17 @@ export function RoleProvider({ children }: { children: ReactNode }) {
 
   const loginStaff = async (staffId: string, pin: string): Promise<{ error?: string }> => {
     try {
+      if (!/^\d{4}$/.test(pin)) return { error: "PIN must be exactly 4 digits." }
+
       const { data, error } = await (supabase.from("vnms_staff") as any)
-        .select("id, name, role, pin, is_active")
+        .select("id, name, role, pin_hash")
         .eq("id", staffId)
         .eq("is_active", true)
         .single()
 
       if (error || !data) return { error: "Staff member not found." }
-      if (data.pin !== pin) return { error: "Wrong PIN. Try again." }
+      const isValidPin = await compare(pin, data.pin_hash)
+      if (!isValidPin) return { error: "Wrong PIN. Try again." }
 
       const user: StaffUser = { id: data.id, name: data.name, role: data.role }
       setStaffUser(user)

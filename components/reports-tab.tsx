@@ -132,36 +132,36 @@ export function ReportsTab() {
       inventory?.forEach((item: any) => {
         const batchSku = item.sku
         const batchCost = item.batch_cost || 0
+        const batchSales = sales?.filter((sale: any) => sale.batch_code === batchSku || sale.batch_id === item.id) || []
+        const seedlingsSold = batchSales.reduce((sum: any, sale: any) => sum + Number(sale.quantity || 0), 0)
+        const revenueGenerated = batchSales.reduce((sum: any, sale: any) => sum + Number(sale.total_amount || 0), 0)
+        const producedQuantity = Math.max(Number(item.quantity || 0) + seedlingsSold, 1)
+
         const taskCostsForBatch = taskCosts
           ?.filter((task: any) => task.batch_sku === batchSku)
-          .reduce((sum: any, task: any) => sum + (task.total_cost || 0), 0) || 0
+          .reduce((sum: any, task: any) => sum + Number(task.total_cost || 0), 0) || 0
 
-        const totalCostPerSeedling = item.quantity > 0 
-          ? (batchCost + taskCostsForBatch) / item.quantity 
-          : 0
+        const totalCostPerSeedling = (batchCost + taskCostsForBatch) / producedQuantity
 
         const profitPerSeedling = item.price - totalCostPerSeedling
         const profitMargin = item.price > 0 ? (profitPerSeedling / item.price) * 100 : 0
 
-        // Calculate sales data for this batch
-        const batchSales = sales?.filter((sale: any) => sale.batch_code === batchSku || sale.batch_id === item.id) || []
-        const seedlingsSold = batchSales.reduce((sum: any, sale: any) => sum + sale.quantity, 0)
-        const revenueGenerated = batchSales.reduce((sum: any, sale: any) => sum + sale.total_amount, 0)
-        const profitRealized = seedlingsSold * profitPerSeedling
+        const costRealized = seedlingsSold * totalCostPerSeedling
+        const profitRealized = revenueGenerated - costRealized
 
         profitabilityMap.set(batchSku, {
           batch_sku: batchSku,
           plant_name: item.plant_name,
           category: item.category,
-          quantity: item.quantity,
+          quantity: producedQuantity,
           selling_price: item.price,
           total_batch_cost: batchCost,
           total_task_costs: taskCostsForBatch,
           total_cost_per_seedling: totalCostPerSeedling,
           profit_per_seedling: profitPerSeedling,
           profit_margin: profitMargin,
-          total_batch_value: item.quantity * item.price,
-          total_batch_profit: item.quantity * profitPerSeedling,
+          total_batch_value: producedQuantity * item.price,
+          total_batch_profit: producedQuantity * profitPerSeedling,
           seedlings_sold: seedlingsSold,
           revenue_generated: revenueGenerated,
           profit_realized: profitRealized,
@@ -360,8 +360,8 @@ export function ReportsTab() {
               No profitability data available. Add inventory and tasks to see reports.
             </div>
           ) : (
-            <div className="rounded-md border overflow-hidden">
-              <Table>
+            <div className="rounded-md border overflow-x-auto">
+              <Table className="min-w-[760px]">
               <TableHeader>
                 <TableRow>
                   <TableHead className="w-8 text-xs">#</TableHead>
@@ -449,8 +449,8 @@ export function ReportsTab() {
                   <p>No sachet data yet. Add sachets in Inventory → Sachets to track supplier performance.</p>
                 </div>
               ) : (
-                <div className="rounded-md border overflow-hidden">
-                  <Table>
+                <div className="rounded-md border overflow-x-auto">
+                  <Table className="min-w-[820px]">
                     <TableHeader>
                       <TableRow>
                         <TableHead className="w-8">#</TableHead>
