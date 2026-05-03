@@ -111,7 +111,12 @@ export function CustomersTab() {
       setCustomers(data || [])
     } catch (error: any) {
       console.error("Error fetching customers:", error)
-      throw error
+      toast({
+        title: "Error loading customers",
+        description: error.message || "Failed to load customers",
+        variant: "destructive",
+      })
+      setCustomers([])
     } finally {
       setLoading(false)
     }

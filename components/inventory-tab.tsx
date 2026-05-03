@@ -87,7 +87,12 @@ export function InventoryTab() {
       setInventory(data || [])
     } catch (error: any) {
       console.error("Error fetching inventory:", error)
-      throw error
+      toast({
+        title: "Error loading inventory",
+        description: error.message || "Failed to load inventory",
+        variant: "destructive",
+      })
+      setInventory([])
     } finally {
       setLoading(false)
     }

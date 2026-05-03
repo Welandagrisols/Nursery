@@ -308,7 +308,11 @@ export function DashboardTab() {
 
     } catch (error: any) {
       console.error("Dashboard data fetch error:", error)
-      throw error
+      toast({
+        title: "Error loading dashboard",
+        description: error.message || "Failed to load dashboard data",
+        variant: "destructive",
+      })
     } finally {
       setLoading(false)
     }
