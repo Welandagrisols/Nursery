@@ -11,7 +11,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { AddInventoryForm } from "@/components/add-inventory-form"
 import { AddConsumableForm } from "@/components/add-consumable-form"
-import { AddHoneyForm } from "@/components/add-honey-form"
 import { EditInventoryForm } from "@/components/edit-inventory-form"
 import { useToast } from "@/components/ui/use-toast"
 import { demoInventory } from "@/components/demo-data"
@@ -32,7 +31,6 @@ export function InventoryTab() {
   const [activeTab, setActiveTab] = useState("plants")
   const [addPlantDialogOpen, setAddPlantDialogOpen] = useState(false)
   const [addConsumableDialogOpen, setAddConsumableDialogOpen] = useState(false)
-  const [addHoneyDialogOpen, setAddHoneyDialogOpen] = useState(false)
   const [addSachetDialogOpen, setAddSachetDialogOpen] = useState(false)
   const [sachets, setSachets] = useState<any[]>([])
   const [sachetsLoading, setSachetsLoading] = useState(false)
@@ -112,6 +110,18 @@ export function InventoryTab() {
     }
   }
 
+  async function updateLifecycleStatus(id: string, status: string) {
+    if (isDemoMode || !tableExists) return
+    try {
+      const { error } = await (supabase.from("vnms_batches") as any).update({ lifecycle_status: status }).eq("id", id)
+      if (error) throw error
+      toast({ title: "Status updated", description: `Lifecycle → ${status.replace(/_/g, " ")}` })
+      await fetchInventory()
+    } catch (err: any) {
+      toast({ title: "Update failed", description: err.message, variant: "destructive" })
+    }
+  }
+
   async function deleteInventoryItem(id: string) {
     if (isDemoMode || !tableExists) {
       toast({
@@ -152,7 +162,6 @@ export function InventoryTab() {
       await fetchInventory()
       setAddPlantDialogOpen(false)
       setAddConsumableDialogOpen(false)
-      setAddHoneyDialogOpen(false)
     } catch (error) {
       console.error("Error refreshing inventory:", error)
     }
@@ -214,23 +223,9 @@ export function InventoryTab() {
       return matchesSearch && matchesCategory && matchesStatus
     })
 
-  const filteredHoneyProducts = inventory
-    .filter(item => item.item_type === "Honey" || item.category === "Organic Honey")
-    .filter(item => {
-      const matchesSearch = !searchTerm || 
-        item.plant_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.sku?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.scientific_name?.toLowerCase().includes(searchTerm.toLowerCase())
-
-      const matchesCategory = categoryFilter === "All Categories" || item.category === categoryFilter
-      const matchesStatus = statusFilter === "all" || item.status === statusFilter
-
-      return matchesSearch && matchesCategory && matchesStatus
-    })
-
   const plantCategories = [
     "All Categories",
-    ...Array.from(new Set(inventory.filter((item) => !isConsumable(item) && item.item_type !== "Honey" && item.category).map((item) => item.category))),
+    ...Array.from(new Set(inventory.filter((item) => !isConsumable(item) && item.category).map((item) => item.category))),
   ].filter(Boolean)
 
   const consumableCategories = [
@@ -243,24 +238,17 @@ export function InventoryTab() {
     )),
   ].filter(Boolean)
 
-  const honeyCategories = [
-    "All Categories",
-    ...Array.from(new Set(inventory.filter((item) => item.item_type === "Honey" || item.category === "Organic Honey").map((item) => item.category))),
-  ].filter(Boolean)
-
   const handleExportToExcel = async () => {
     try {
       setExporting(true)
 
-      const dataToExport = activeTab === "plants" ? filteredPlants : activeTab === "consumables" ? filteredConsumables : filteredHoneyProducts
+      const dataToExport = activeTab === "plants" ? filteredPlants : filteredConsumables
       const exportData = formatInventoryForExport(dataToExport, activeTab === "consumables")
 
       const fileName =
         activeTab === "plants"
-          ? `Plants_Export_${new Date().toISOString().split("T")[0]}`
-          : activeTab === "consumables"
-          ? `Consumables_Export_${new Date().toISOString().split("T")[0]}`
-          : `Honey_Export_${new Date().toISOString().split("T")[0]}`;
+          ? `Seedlings_Export_${new Date().toISOString().split("T")[0]}`
+          : `Consumables_Export_${new Date().toISOString().split("T")[0]}`
 
       const success = exportToExcel(exportData, fileName)
 
@@ -387,26 +375,6 @@ export function InventoryTab() {
               </Dialog>
             )}
 
-            {activeTab === "honey" && (
-              <Dialog open={addHoneyDialogOpen} onOpenChange={setAddHoneyDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button 
-                    variant="default"
-                    disabled={isDemoMode || !tableExists}
-                  >
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Honey
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
-                  <DialogHeader>
-                    <DialogTitle>Add New Honey Product</DialogTitle>
-                  </DialogHeader>
-                  <AddHoneyForm onSuccess={handleAddSuccess} onClose={() => setAddHoneyDialogOpen(false)} />
-                </DialogContent>
-              </Dialog>
-            )}
-
             {activeTab === "consumables" && (
               <Dialog open={addConsumableDialogOpen} onOpenChange={setAddConsumableDialogOpen}>
                 <DialogTrigger asChild>
@@ -453,7 +421,7 @@ export function InventoryTab() {
           <div className="flex flex-col lg:flex-row gap-6">
             <div className="flex-1">
               <Input
-                placeholder={`Search ${activeTab === "plants" ? "plants" : activeTab === "consumables" ? "consumables" : "honey"}...`}
+                placeholder={`Search ${activeTab === "plants" ? "seedlings" : "consumables"}...`}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="modern-input text-lg font-medium"
@@ -465,7 +433,7 @@ export function InventoryTab() {
                   <SelectValue placeholder="Category" />
                 </SelectTrigger>
                 <SelectContent>
-                  {(activeTab === "plants" ? plantCategories : activeTab === "honey" ? honeyCategories : consumableCategories).map((category) => (
+                  {(activeTab === "plants" ? plantCategories : consumableCategories).map((category) => (
                     <SelectItem key={category} value={category}>
                       {category}
                     </SelectItem>
@@ -501,19 +469,6 @@ export function InventoryTab() {
                 </Select>
               )}
 
-              {activeTab === "honey" && (
-                <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger className="w-32">
-                    <SelectValue placeholder="Status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All</SelectItem>
-                    <SelectItem value="Available">Available</SelectItem>
-                    <SelectItem value="Low Stock">Low Stock</SelectItem>
-                    <SelectItem value="Out of Stock">Out of Stock</SelectItem>
-                  </SelectContent>
-                </Select>
-              )}
             </div>
           </div>
         </div>
@@ -661,159 +616,28 @@ export function InventoryTab() {
                           <p className="text-xs text-muted-foreground line-clamp-2">{item.description}</p>
                         </div>
                       )}
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          )}
-        </TabsContent>
-         {/* Honey Tab */}
-         <TabsContent value="honey" className="space-y-4">
-          {loading ? (
-            <div className="flex items-center justify-center h-64">
-              <div className="text-center">
-                <ShoppingCart className="h-8 w-8 animate-pulse mx-auto mb-2 text-muted-foreground" />
-                <p className="text-muted-foreground">Loading Honey Products...</p>
-              </div>
-            </div>
-          ) : filteredHoneyProducts.length === 0 ? (
-            <div className="text-center py-12">
-              <ShoppingCart className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-              <h3 className="text-lg font-semibold mb-2">No Honey Products found</h3>
-              <p className="text-muted-foreground mb-4">
-                {searchTerm || categoryFilter !== "All Categories"
-                  ? "Try adjusting your search or filters"
-                  : "Start by adding your first Honey Product"}
-              </p>
-              <Dialog open={addHoneyDialogOpen} onOpenChange={setAddHoneyDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button disabled={isDemoMode || !tableExists}>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Your First Honey Product
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="sm:max-w-[600px]">
-                  <DialogHeader>
-                    <DialogTitle>Add New Honey Product</DialogTitle>
-                  </DialogHeader>
-                  <AddHoneyForm onSuccess={handleAddSuccess} onClose={() => setAddHoneyDialogOpen(false)} />
-                </DialogContent>
-              </Dialog>
-            </div>
-          ) : (
-            <div className="grid gap-4 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              {filteredHoneyProducts.map((item) => (
-                <Card key={item.id} className="transition-all hover:shadow-md bg-orange-50 border-orange-200 h-fit max-w-sm mx-auto w-full">
-                  <CardContent className="p-3 sm:p-4">
-                    <div className="flex justify-between items-start mb-3">
-                      <Badge className="bg-orange-600 hover:bg-orange-700 text-white text-xs truncate max-w-[140px]">
-                        🍯 Honey
-                      </Badge>
-                      <div className="flex gap-1 flex-shrink-0">
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          onClick={() => setEditItem(item)} 
-                          className="h-7 w-7 p-0"
-                          disabled={isDemoMode || !tableExists}
-                        >
-                          <Edit className="h-3 w-3" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => {
-                            if (confirm("Are you sure you want to delete this Honey Product?")) {
-                              deleteInventoryItem(item.id)
-                            }
-                          }}
-                          className="h-7 w-7 p-0 text-destructive hover:text-destructive"
-                          disabled={isDemoMode || !tableExists}
-                        >
-                          <Trash2 className="h-3 w-3" />
-                        </Button>
-                      </div>
-                    </div>
 
-                    {/* Honey Product Image */}
-                    {item.image_url && (
-                      <div className="mb-3">
-                        <img 
-                          src={item.image_url} 
-                          alt={item.plant_name}
-                          className="w-full h-24 sm:h-32 object-cover rounded-md border border-gray-200"
-                          onError={(e) => {
-                            e.currentTarget.style.display = 'none';
-                          }}
-                        />
-                      </div>
-                    )}
-
-                    <div className="space-y-3">
-                      <div>
-                        <h3 className="font-semibold text-base leading-tight line-clamp-2">{item.plant_name}</h3>
-                        {item.scientific_name && (
-                          <p className="text-xs text-muted-foreground italic truncate">{item.scientific_name}</p>
-                        )}
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-2 text-xs">
-                        <div>
-                          <span className="text-muted-foreground block">Qty:</span>
-                          <p className="font-medium truncate">{item.quantity}</p>
-                        </div>
-                        <div>
-                          <span className="text-muted-foreground block">Selling Price ({item.age || item.unit || 'per unit'}):</span>
-                          <p className="font-medium truncate">Ksh {item.price}</p>
-                        </div>
-                        <div className="col-span-2">
-                          <span className="text-muted-foreground block">SKU:</span>
-                          <p className="font-medium text-xs truncate">{item.sku}</p>
-                        </div>
-                        <div className="col-span-2">
-                          <span className="text-muted-foreground block">Status:</span>
-                          <Badge
-                            variant="outline"
-                            className={`text-xs h-5 ${
-                              item.status === "Available"
-                                ? "bg-green-100 text-green-800 border-green-200"
-                                : item.status === "Low Stock"
-                                ? "bg-yellow-100 text-yellow-800 border-yellow-200"
-                                : "bg-red-100 text-red-800 border-red-200"
-                            }`}
-                          >
-                            {item.status}
-                          </Badge>
-                        </div>
-                        <div className="col-span-2">
-                          <span className="text-muted-foreground block">Website:</span>
-                          <div className="flex items-center gap-1">
-                            <Badge
-                              variant="outline"
-                              className={`text-xs h-5 ${
-                                item.ready_for_sale
-                                  ? "bg-green-100 text-green-800 border-green-200"
-                                  : "bg-gray-100 text-gray-800 border-gray-200"
-                              }`}
-                            >
-                              {item.ready_for_sale ? "✅ Listed" : "⏸️ Hidden"}
-                            </Badge>
-                          </div>
-                        </div>
-                      </div>
-
-                      {(item.age || item.section || item.source) && (
-                        <div className="pt-2 border-t text-xs text-muted-foreground space-y-1">
-                          {item.age && <p className="truncate">Package: {item.age}</p>}
-                          {item.section && <p className="truncate">Packaging: {item.section}</p>}
-                          {item.row && <p className="truncate">Source Hives: {item.row}</p>}
-                        </div>
-                      )}
-
-                      {item.description && (
+                      {/* Quick Lifecycle Status Buttons */}
+                      {!isDemoMode && tableExists && (
                         <div className="pt-2 border-t">
-                          <p className="text-xs text-muted-foreground line-clamp-2">{item.description}</p>
+                          <p className="text-xs text-muted-foreground mb-1.5">Lifecycle:</p>
+                          <div className="flex flex-wrap gap-1">
+                            {(["received","planted","germination","ready","selling","sold_out"] as const).map((stage) => {
+                              const labels: Record<string, string> = { received:"Rcvd", planted:"Planted", germination:"Germ.", ready:"Ready", selling:"Selling", sold_out:"Sold" }
+                              const colors: Record<string, string> = { received:"bg-gray-100 text-gray-600 border-gray-300", planted:"bg-blue-100 text-blue-700 border-blue-300", germination:"bg-amber-100 text-amber-700 border-amber-300", ready:"bg-green-100 text-green-700 border-green-300", selling:"bg-emerald-100 text-emerald-700 border-emerald-300", sold_out:"bg-red-100 text-red-600 border-red-300" }
+                              const isActive = item.lifecycle_status === stage
+                              return (
+                                <button
+                                  key={stage}
+                                  onClick={() => updateLifecycleStatus(item.id, stage)}
+                                  className={`text-[10px] px-1.5 py-0.5 rounded border font-medium transition-all ${colors[stage]} ${isActive ? "ring-2 ring-offset-1 ring-current font-bold" : "opacity-60 hover:opacity-100"}`}
+                                  title={stage.replace(/_/g," ")}
+                                >
+                                  {labels[stage]}
+                                </button>
+                              )
+                            })}
+                          </div>
                         </div>
                       )}
                     </div>

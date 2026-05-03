@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { AlertCircle, ShoppingCart, Package, TrendingUp, TrendingDown, Sprout, DollarSign, Activity, Crown, Award, Medal, Users, Calendar } from "lucide-react"
+import { AlertCircle, ShoppingCart, Package, TrendingUp, TrendingDown, Sprout, DollarSign, Activity, Crown, Award, Medal, Users, Calendar, Clock, CheckCircle2, LogIn } from "lucide-react"
 import { demoInventory, demoSales, demoCustomers } from "@/components/demo-data"
 import { DemoModeBanner } from "@/components/demo-mode-banner"
 import {
@@ -40,6 +40,7 @@ export function DashboardTab() {
     totalSales: 0,
     totalAmount: 0,
     todaySales: 0,
+    todayRevenue: 0,
     thisMonthAmount: 0,
     lastMonthAmount: 0,
   })
@@ -49,6 +50,7 @@ export function DashboardTab() {
   const [bestSellers, setBestSellers] = useState<any[]>([])
   const [topCustomers, setTopCustomers] = useState<any[]>([])
   const [categorySales, setCategorySales] = useState<any[]>([])
+  const [todayTasks, setTodayTasks] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [stockAlerts, setStockAlerts] = useState<any[]>([])
   const [tablesExist, setTablesExist] = useState({
@@ -83,6 +85,14 @@ export function DashboardTab() {
       // Fetch stock alerts
       supabase.from("vnms_stock_alerts").select("*").eq("resolved", false).order("created_at", { ascending: false })
         .then(({ data }) => { if (data) setStockAlerts(data) })
+        .catch(() => {})
+
+      // Fetch today's tasks for staff attendance
+      const todayStr = new Date().toISOString().split("T")[0]
+      supabase.from("vnms_staff_tasks").select("id, task_name, assigned_to, clock_in_at, clock_out_at, status, labor_hours, is_late, is_absent")
+        .eq("task_date", todayStr)
+        .order("clock_in_at", { ascending: true })
+        .then(({ data }) => { if (data) setTodayTasks(data) })
         .catch(() => {})
 
       fetchDashboardData().catch((error) => {
@@ -136,6 +146,7 @@ export function DashboardTab() {
         totalSales: totalSalesCount,
         totalAmount,
         todaySales: todaySalesCount,
+        todayRevenue: 0,
         thisMonthAmount: totalAmount * 0.4,
         lastMonthAmount: totalAmount * 0.35,
       })
@@ -253,6 +264,7 @@ export function DashboardTab() {
       const totalSalesCount = salesData?.length || 0
       let totalAmount = 0
       let todaySalesCount = 0
+      let todayRevenue = 0
       let thisMonthAmount = 0
       let lastMonthAmount = 0
       const today = new Date().toISOString().split("T")[0]
@@ -263,6 +275,7 @@ export function DashboardTab() {
         
         if (sale.sale_date.startsWith(today)) {
           todaySalesCount++
+          todayRevenue += sale.total_amount || 0
         }
         
         if (saleDate >= thisMonthStart) {
@@ -276,6 +289,7 @@ export function DashboardTab() {
         totalSales: totalSalesCount,
         totalAmount,
         todaySales: todaySalesCount,
+        todayRevenue,
         thisMonthAmount,
         lastMonthAmount,
       })
@@ -507,6 +521,92 @@ export function DashboardTab() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Today's Sales Widget */}
+      {salesSummary.todayRevenue > 0 && (
+        <Card className="border-green-200 bg-gradient-to-r from-green-50 to-emerald-50">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-semibold text-green-600 uppercase tracking-wide mb-0.5">Today's Revenue</p>
+                <p className="text-3xl font-black text-green-700">Ksh {salesSummary.todayRevenue.toLocaleString()}</p>
+                <p className="text-xs text-green-600 mt-0.5">{salesSummary.todaySales} sale{salesSummary.todaySales !== 1 ? "s" : ""} recorded today</p>
+              </div>
+              <div className="text-right">
+                <p className="text-xs text-gray-500 mb-1">Month so far</p>
+                <p className="text-xl font-bold text-gray-700">Ksh {salesSummary.thisMonthAmount.toLocaleString()}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Staff Attendance Today */}
+      {todayTasks.length > 0 && (
+        <Card className="border-blue-200">
+          <CardHeader className="px-4 py-3">
+            <CardTitle className="text-sm font-semibold flex items-center gap-2">
+              <Users className="h-4 w-4 text-blue-500" /> Staff Attendance — Today
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="px-0 pb-0">
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="border-b bg-muted/30">
+                    <th className="text-left px-4 py-2 font-semibold text-muted-foreground">Staff</th>
+                    <th className="text-left px-3 py-2 font-semibold text-muted-foreground">Task</th>
+                    <th className="text-center px-3 py-2 font-semibold text-muted-foreground">In</th>
+                    <th className="text-center px-3 py-2 font-semibold text-muted-foreground">Out</th>
+                    <th className="text-center px-3 py-2 font-semibold text-muted-foreground">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {todayTasks.map((task) => {
+                    const isAbsent = task.is_absent
+                    const isLate = task.is_late
+                    const clockedIn = !!task.clock_in_at
+                    const clockedOut = !!task.clock_out_at
+                    const hoursWorked = clockedIn && clockedOut
+                      ? ((new Date(task.clock_out_at).getTime() - new Date(task.clock_in_at).getTime()) / 3600000).toFixed(1)
+                      : null
+                    return (
+                      <tr key={task.id} className="border-b last:border-0 hover:bg-muted/10">
+                        <td className="px-4 py-2.5 font-medium">{task.assigned_to || "Unassigned"}</td>
+                        <td className="px-3 py-2.5 text-muted-foreground max-w-[120px] truncate">{task.task_name}</td>
+                        <td className="px-3 py-2.5 text-center">
+                          {clockedIn
+                            ? <span className="text-green-600 font-medium">{new Date(task.clock_in_at).toLocaleTimeString("en-KE", { hour: "2-digit", minute: "2-digit" })}</span>
+                            : <span className="text-gray-300">—</span>}
+                        </td>
+                        <td className="px-3 py-2.5 text-center">
+                          {clockedOut
+                            ? <span className="text-red-500 font-medium">{new Date(task.clock_out_at).toLocaleTimeString("en-KE", { hour: "2-digit", minute: "2-digit" })}</span>
+                            : clockedIn ? <span className="text-amber-500 font-medium animate-pulse">Active</span>
+                            : <span className="text-gray-300">—</span>}
+                        </td>
+                        <td className="px-3 py-2.5 text-center">
+                          {isAbsent
+                            ? <Badge variant="destructive" className="text-[10px] px-1.5 py-0">Absent</Badge>
+                            : isLate
+                            ? <Badge className="bg-amber-100 text-amber-700 border-amber-300 text-[10px] px-1.5 py-0" variant="outline">Late</Badge>
+                            : clockedOut
+                            ? <Badge className="bg-green-100 text-green-700 border-green-300 text-[10px] px-1.5 py-0" variant="outline">Done {hoursWorked}h</Badge>
+                            : clockedIn
+                            ? <Badge className="bg-blue-100 text-blue-700 border-blue-300 text-[10px] px-1.5 py-0" variant="outline">
+                                <LogIn className="h-2.5 w-2.5 mr-0.5" />In
+                              </Badge>
+                            : <Badge variant="outline" className="text-[10px] px-1.5 py-0 text-gray-400">Planned</Badge>}
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader className="px-4 py-4 sm:px-6">

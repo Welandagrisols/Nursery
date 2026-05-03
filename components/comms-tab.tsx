@@ -13,9 +13,10 @@ import { useToast } from "@/components/ui/use-toast"
 import {
   MessageCircle, Share2, Link2, Copy, CheckCircle,
   Facebook, Instagram, Phone, Clock, Users, Package,
-  ChevronRight, AlertCircle, Check, UserCheck, RefreshCw
+  ChevronRight, AlertCircle, Check, UserCheck, RefreshCw, Tag
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { PriceListTab } from "@/components/website-integration-tab"
 
 /* ── Message templates ─────────────────────────────────── */
 const TEMPLATES = [
@@ -237,15 +238,18 @@ export function CommsTab() {
       </div>
 
       <Tabs defaultValue="whatsapp" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="whatsapp" className="text-xs gap-1.5">
-            <MessageCircle className="h-3.5 w-3.5" /> Broadcast
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="whatsapp" className="text-xs gap-1">
+            <MessageCircle className="h-3 w-3" /> Broadcast
           </TabsTrigger>
-          <TabsTrigger value="socials" className="text-xs gap-1.5">
-            <Link2 className="h-3.5 w-3.5" /> Social Links
+          <TabsTrigger value="pricelist" className="text-xs gap-1">
+            <Tag className="h-3 w-3" /> Price List
           </TabsTrigger>
-          <TabsTrigger value="history" className="text-xs gap-1.5">
-            <Clock className="h-3.5 w-3.5" /> History
+          <TabsTrigger value="socials" className="text-xs gap-1">
+            <Link2 className="h-3 w-3" /> Socials
+          </TabsTrigger>
+          <TabsTrigger value="history" className="text-xs gap-1">
+            <Clock className="h-3 w-3" /> History
           </TabsTrigger>
         </TabsList>
 
@@ -549,6 +553,10 @@ export function CommsTab() {
         </TabsContent>
 
         {/* ── HISTORY ────────────────────────────────────── */}
+        <TabsContent value="pricelist" className="mt-4">
+          <PriceListTab />
+        </TabsContent>
+
         <TabsContent value="history" className="mt-4 space-y-3">
           {logs.length === 0 ? (
             <Card className="border-dashed">

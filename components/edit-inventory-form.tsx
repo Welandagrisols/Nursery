@@ -66,7 +66,7 @@ export function EditInventoryForm({ item, onSuccess, onCancel }: EditInventoryFo
     description: item.description || "",
     image_url: item.image_url || "",
     ready_for_sale: item.ready_for_sale || false,
-    // These fields are from the changes, but not present in the original item object, so they are initialized as empty
+    lifecycle_status: item.lifecycle_status || "received",
     unit: "",
     notes: "",
   })
@@ -303,6 +303,7 @@ export function EditInventoryForm({ item, onSuccess, onCancel }: EditInventoryFo
         description: formData.description?.trim() || null,
         image_url: imageUrl,
         ready_for_sale: formData.ready_for_sale,
+        lifecycle_status: formData.lifecycle_status,
         updated_at: new Date().toISOString(),
       }
 
@@ -425,19 +426,43 @@ export function EditInventoryForm({ item, onSuccess, onCancel }: EditInventoryFo
               </div>
 
               <div>
-                <Label htmlFor="status">Status</Label>
+                <Label htmlFor="status">Condition</Label>
                 <Select
                   value={formData.status}
                   onValueChange={(value) => setFormData((prev) => ({ ...prev, status: value }))}
                   disabled={isDemoMode}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Select status" />
+                    <SelectValue placeholder="Select condition" />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="Healthy">Healthy</SelectItem>
+                    <SelectItem value="Attention">Needs Attention</SelectItem>
+                    <SelectItem value="Critical">Critical</SelectItem>
                     <SelectItem value="Available">Available</SelectItem>
                     <SelectItem value="Low Stock">Low Stock</SelectItem>
                     <SelectItem value="Out of Stock">Out of Stock</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label htmlFor="lifecycle_status">Lifecycle Stage</Label>
+                <Select
+                  value={formData.lifecycle_status}
+                  onValueChange={(value) => setFormData((prev) => ({ ...prev, lifecycle_status: value }))}
+                  disabled={isDemoMode}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select stage" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="received">🌰 Received (seeds/cuttings in stock)</SelectItem>
+                    <SelectItem value="planted">🌱 Planted (in beds/trays)</SelectItem>
+                    <SelectItem value="germination">🌿 Germination (sprouting)</SelectItem>
+                    <SelectItem value="ready">✅ Ready (ready to sell)</SelectItem>
+                    <SelectItem value="selling">🛒 Selling (actively selling)</SelectItem>
+                    <SelectItem value="sold_out">📦 Sold Out</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

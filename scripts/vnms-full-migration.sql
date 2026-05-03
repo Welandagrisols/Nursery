@@ -41,7 +41,7 @@ CREATE TABLE IF NOT EXISTS vnms_batches (
   expected_ready_date DATE,
   actual_ready_date DATE,
   lifecycle_status TEXT DEFAULT 'received'
-    CHECK (lifecycle_status IN ('received','planted','germinating','selling','sold_out')),
+    CHECK (lifecycle_status IN ('received','planted','germination','ready','selling','sold_out')),
   created_by TEXT,
   seeds_allocated INTEGER DEFAULT 0,
   available_stock INTEGER DEFAULT 0,
@@ -317,7 +317,24 @@ CREATE TABLE IF NOT EXISTS vnms_inventory_inputs (
 );
 
 -- ──────────────────────────────────────────────────────────
--- 11. ROW LEVEL SECURITY — open access for authenticated users
+-- 11. FIX EXISTING CONSTRAINTS (safe to re-run)
+-- ──────────────────────────────────────────────────────────
+
+-- Fix lifecycle_status values: germinating→germination, add 'ready'
+-- For existing tables: drop old check constraint, add corrected one
+DO $$ BEGIN
+  ALTER TABLE vnms_batches DROP CONSTRAINT IF EXISTS vnms_batches_lifecycle_status_check;
+EXCEPTION WHEN OTHERS THEN NULL; END $$;
+ALTER TABLE vnms_batches
+  ADD CONSTRAINT vnms_batches_lifecycle_status_check
+  CHECK (lifecycle_status IN ('received','planted','germination','ready','selling','sold_out'));
+
+-- Rename any old 'germinating' values to 'germination' in existing data
+UPDATE vnms_batches SET lifecycle_status = 'germination'
+  WHERE lifecycle_status = 'germinating';
+
+-- ──────────────────────────────────────────────────────────
+-- 12. ROW LEVEL SECURITY — open access for authenticated users
 -- ──────────────────────────────────────────────────────────
 
 ALTER TABLE vnms_customers ENABLE ROW LEVEL SECURITY;

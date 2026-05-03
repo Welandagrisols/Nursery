@@ -62,16 +62,17 @@ export const supabase = createClient<Database>(validSupabaseUrl, validSupabaseAn
   },
 })
 
+// Module-level cache so each table is only checked once per session
+const _tableExistsCache = new Map<string, boolean>()
+
 // Helper function to check if a table exists
 export const checkTableExists = async (tableName: string): Promise<boolean> => {
   if (isDemoMode) return false
+  if (_tableExistsCache.has(tableName)) return _tableExistsCache.get(tableName)!
 
   try {
-    console.log(`Checking if table ${tableName} exists...`)
-
-    // Add timeout to the request
     const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 10000) // 10 second timeout
+    const timeoutId = setTimeout(() => controller.abort(), 10000)
 
     const { data, error } = await supabase
       .from(tableName)
@@ -81,32 +82,24 @@ export const checkTableExists = async (tableName: string): Promise<boolean> => {
 
     clearTimeout(timeoutId)
 
-    console.log(`Table ${tableName} check result:`, { data, error })
-
     if (error) {
-      console.error(`Supabase error for table ${tableName}:`, error)
-
-      // If we get a specific error about the table not existing, return false
       if (error.message.includes('does not exist') ||
-          error.message.includes('relation') && error.message.includes('does not exist')) {
+          (error.message.includes('relation') && error.message.includes('does not exist'))) {
+        _tableExistsCache.set(tableName, false)
         return false
       }
-
-      // For network errors, throw to trigger demo mode
       if (error.message.includes('Failed to fetch') ||
           error.message.includes('NetworkError') ||
           error.message.includes('TypeError')) {
         throw new Error(`Network error: ${error.message}`)
       }
-
-      // For other errors, we assume the table exists but there's a connection issue
+      _tableExistsCache.set(tableName, true)
       return true
     }
 
-    console.log(`Table ${tableName} exists`)
+    _tableExistsCache.set(tableName, true)
     return true
   } catch (error: any) {
-    console.error(`Error checking table ${tableName}:`, error)
     if (error.name === 'AbortError') {
       throw new Error('Request timeout - check your internet connection')
     }

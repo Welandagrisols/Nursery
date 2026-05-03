@@ -8,7 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Download, Loader2, TrendingUp, TrendingDown, Minus, Package, BarChart3, Star, Award } from "lucide-react"
+import { Download, Loader2, TrendingUp, TrendingDown, Minus, Package, BarChart3, Star, Award, ShoppingCart } from "lucide-react"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { DemoModeBanner } from "./demo-mode-banner"
 import { exportToExcel } from "@/lib/excel-export"
@@ -71,6 +71,7 @@ const demoReportsData = [
 export function ReportsTab() {
   const [profitabilityData, setProfitabilityData] = useState<any[]>([])
   const [supplierData, setSupplierData] = useState<any[]>([])
+  const [salesReport, setSalesReport] = useState<{ daily: any[]; totals: { today: number; week: number; month: number; todayCount: number; weekCount: number } }>({ daily: [], totals: { today: 0, week: 0, month: 0, todayCount: 0, weekCount: 0 } })
   const [loading, setLoading] = useState(true)
   const [exporting, setExporting] = useState(false)
   const [tablesExist, setTablesExist] = useState(true)
@@ -173,6 +174,37 @@ export function ReportsTab() {
         .sort((a, b) => b.profit_margin - a.profit_margin)
 
       setProfitabilityData(profitabilityArray)
+
+      // Build daily sales summary for last 14 days
+      {
+        const today = new Date()
+        const todayStr = today.toISOString().split("T")[0]
+        const mondayOffset = (today.getDay() + 6) % 7
+        const weekStart = new Date(today); weekStart.setDate(today.getDate() - mondayOffset)
+        const weekStartStr = weekStart.toISOString().split("T")[0]
+        const monthStart = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split("T")[0]
+        const dailyMap = new Map<string, { revenue: number; count: number }>()
+        let totToday = 0, totWeek = 0, totMonth = 0, cntToday = 0, cntWeek = 0
+        for (let i = 13; i >= 0; i--) {
+          const d = new Date(today); d.setDate(today.getDate() - i)
+          dailyMap.set(d.toISOString().split("T")[0], { revenue: 0, count: 0 })
+        }
+        sales?.forEach((s: any) => {
+          const dateStr = (s.sale_date || "").slice(0, 10)
+          if (dailyMap.has(dateStr)) {
+            const cur = dailyMap.get(dateStr)!
+            cur.revenue += s.total_amount || 0
+            cur.count += 1
+          }
+          if (dateStr === todayStr) { totToday += s.total_amount || 0; cntToday++ }
+          if (dateStr >= weekStartStr) { totWeek += s.total_amount || 0; cntWeek++ }
+          if (dateStr >= monthStart) { totMonth += s.total_amount || 0 }
+        })
+        setSalesReport({
+          daily: Array.from(dailyMap.entries()).map(([date, v]) => ({ date, ...v })),
+          totals: { today: totToday, week: totWeek, month: totMonth, todayCount: cntToday, weekCount: cntWeek },
+        })
+      }
 
       // Fetch supplier leaderboard from sachets
       const sachetsRes = await supabase.from("vnms_sachets").select("supplier_name, label_germination_pct, actual_germination_pct, cost_paid, seed_count, crop_type")
@@ -284,9 +316,12 @@ export function ReportsTab() {
       </div>
 
       <Tabs defaultValue="profitability" className="w-full">
-        <TabsList className="flex w-full max-w-md">
+        <TabsList className="flex w-full max-w-lg">
           <TabsTrigger value="profitability" className="flex-1 flex items-center gap-1 text-xs sm:text-sm">
             <BarChart3 className="h-3 w-3" /> Profitability
+          </TabsTrigger>
+          <TabsTrigger value="sales" className="flex-1 flex items-center gap-1 text-xs sm:text-sm">
+            <ShoppingCart className="h-3 w-3" /> Sales
           </TabsTrigger>
           <TabsTrigger value="suppliers" className="flex-1 flex items-center gap-1 text-xs sm:text-sm">
             <Award className="h-3 w-3" /> Suppliers
@@ -434,6 +469,64 @@ export function ReportsTab() {
           )}
         </CardContent>
       </Card>
+        </TabsContent>
+
+        <TabsContent value="sales" className="mt-4 space-y-4">
+          <div className="grid grid-cols-3 gap-3">
+            <Card className="border-green-200 bg-green-50">
+              <CardContent className="p-4">
+                <p className="text-xs font-semibold text-green-600 uppercase mb-1">Today</p>
+                <p className="text-2xl font-black text-green-700">Ksh {salesReport.totals.today.toLocaleString()}</p>
+                <p className="text-xs text-green-600 mt-0.5">{salesReport.totals.todayCount} sale{salesReport.totals.todayCount !== 1 ? "s" : ""}</p>
+              </CardContent>
+            </Card>
+            <Card className="border-blue-200 bg-blue-50">
+              <CardContent className="p-4">
+                <p className="text-xs font-semibold text-blue-600 uppercase mb-1">This Week</p>
+                <p className="text-2xl font-black text-blue-700">Ksh {salesReport.totals.week.toLocaleString()}</p>
+                <p className="text-xs text-blue-600 mt-0.5">{salesReport.totals.weekCount} sale{salesReport.totals.weekCount !== 1 ? "s" : ""}</p>
+              </CardContent>
+            </Card>
+            <Card className="border-orange-200 bg-orange-50">
+              <CardContent className="p-4">
+                <p className="text-xs font-semibold text-orange-600 uppercase mb-1">This Month</p>
+                <p className="text-2xl font-black text-orange-700">Ksh {salesReport.totals.month.toLocaleString()}</p>
+              </CardContent>
+            </Card>
+          </div>
+
+          <Card>
+            <CardHeader className="px-4 py-3">
+              <CardTitle className="text-sm">Daily Sales — Last 14 Days</CardTitle>
+            </CardHeader>
+            <CardContent className="px-4 pb-4">
+              {loading ? (
+                <div className="text-center py-8 text-muted-foreground text-sm">Loading...</div>
+              ) : (
+                <div className="space-y-2">
+                  {salesReport.daily.filter(d => d.revenue > 0 || d.count > 0).reverse().map(d => {
+                    const dateLabel = new Date(d.date + "T00:00:00").toLocaleDateString("en-KE", { weekday: "short", day: "numeric", month: "short" })
+                    const maxRev = Math.max(...salesReport.daily.map(x => x.revenue), 1)
+                    const pct = (d.revenue / maxRev) * 100
+                    return (
+                      <div key={d.date} className="flex items-center gap-3">
+                        <span className="text-xs text-gray-500 w-28 shrink-0">{dateLabel}</span>
+                        <div className="flex-1 h-5 bg-gray-100 rounded overflow-hidden">
+                          <div className="h-full bg-green-400 rounded transition-all" style={{ width: `${pct}%` }} />
+                        </div>
+                        <span className="text-xs font-semibold text-gray-700 w-28 text-right shrink-0">
+                          Ksh {d.revenue.toLocaleString()} <span className="text-gray-400 font-normal">({d.count})</span>
+                        </span>
+                      </div>
+                    )
+                  })}
+                  {salesReport.daily.every(d => d.revenue === 0) && (
+                    <div className="text-center py-8 text-muted-foreground text-sm">No sales recorded in last 14 days</div>
+                  )}
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </TabsContent>
 
         <TabsContent value="suppliers" className="mt-4">

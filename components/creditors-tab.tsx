@@ -21,6 +21,7 @@ interface CreditSale {
   plant_name?: string
   batch_code?: string
   payment_method: string
+  payment_reference?: string
   notes?: string
   customer?: {
     id: string
@@ -62,54 +63,82 @@ export function CreditorsTab() {
     setLoading(false)
   }
 
+  const getAmountPaid = (s: CreditSale): number => {
+    if (s.payment_reference?.startsWith("partial:")) {
+      return Number(s.payment_reference.split(":")[1]) || 0
+    }
+    return 0
+  }
+
+  const isPaid = (s: CreditSale) =>
+    s.payment_method.toLowerCase().includes("paid") && !s.payment_method.toLowerCase().includes("partial")
+
+  const isPartial = (s: CreditSale) =>
+    s.payment_reference?.startsWith("partial:") && !isPaid(s)
+
+  const getRemainingBalance = (s: CreditSale): number =>
+    Math.max(0, s.total_amount - getAmountPaid(s))
+
   const openPayDialog = (sale: CreditSale) => {
-    setPayDialog({ sale, amount: String(sale.total_amount), method: "Cash" })
+    const remaining = getRemainingBalance(sale)
+    setPayDialog({ sale, amount: String(remaining), method: "Cash" })
   }
 
   const markAsPaid = async () => {
     if (!payDialog) return
     const receivedAmount = Number(payDialog.amount)
-    const expectedAmount = Number(payDialog.sale.total_amount)
+    const remainingBalance = getRemainingBalance(payDialog.sale)
     if (!Number.isFinite(receivedAmount) || receivedAmount <= 0) {
       toast({ title: "Invalid amount", description: "Enter a valid amount received.", variant: "destructive" })
       return
     }
-    if (Math.abs(receivedAmount - expectedAmount) > 0.01) {
-      toast({
-        title: "Full settlement required",
-        description: `This sale can only be closed when full amount (Ksh ${expectedAmount.toLocaleString()}) is collected.`,
-        variant: "destructive",
-      })
+    if (receivedAmount > remainingBalance + 0.01) {
+      toast({ title: "Amount too high", description: `Remaining balance is Ksh ${remainingBalance.toLocaleString()}.`, variant: "destructive" })
       return
     }
 
     setPaying(true)
+    const isFullPayment = receivedAmount >= remainingBalance - 0.01
+    const totalPaidSoFar = getAmountPaid(payDialog.sale) + receivedAmount
+    const dateStr = new Date().toLocaleDateString("en-KE", { day: "numeric", month: "short", year: "numeric" })
+    const newNote = isFullPayment
+      ? `${payDialog.sale.notes ?? ""} | Paid in full: Ksh ${receivedAmount.toFixed(2)} via ${payDialog.method} on ${dateStr}`.trim()
+      : `${payDialog.sale.notes ?? ""} | Partial: Ksh ${receivedAmount.toFixed(2)} via ${payDialog.method} on ${dateStr} (Ksh ${(remainingBalance - receivedAmount).toFixed(2)} remaining)`.trim()
+
     const { error } = await (supabase.from("vnms_sales") as any)
       .update({
-        payment_method: `Credit (Paid — ${payDialog.method})`,
-        payment_reference: `${payDialog.method}:${receivedAmount.toFixed(2)}`,
-        notes: `${payDialog.sale.notes ?? ""} | Paid in full: Ksh ${receivedAmount.toFixed(2)} via ${payDialog.method} on ${new Date().toLocaleDateString()}`.trim(),
+        payment_method: isFullPayment
+          ? `Credit (Paid — ${payDialog.method})`
+          : `Credit (Partial)`,
+        payment_reference: isFullPayment
+          ? `paid:${totalPaidSoFar.toFixed(2)}:${payDialog.method}`
+          : `partial:${totalPaidSoFar.toFixed(2)}`,
+        notes: newNote,
       })
       .eq("id", payDialog.sale.id)
 
     if (error) {
-      toast({ title: "Error marking as paid", description: error.message, variant: "destructive" })
+      toast({ title: "Error recording payment", description: error.message, variant: "destructive" })
     } else {
-      toast({ title: "Marked as paid!", description: `Ksh ${payDialog.amount} collected from ${payDialog.sale.customer?.name ?? "customer"}.` })
+      toast({
+        title: isFullPayment ? "Payment complete!" : "Partial payment recorded",
+        description: isFullPayment
+          ? `Ksh ${receivedAmount.toFixed(2)} collected — account settled.`
+          : `Ksh ${receivedAmount.toFixed(2)} recorded. Ksh ${(remainingBalance - receivedAmount).toFixed(2)} still outstanding.`,
+      })
       setPayDialog(null)
       fetchCreditSales()
     }
     setPaying(false)
   }
 
-  const isPaid = (s: CreditSale) => s.payment_method.toLowerCase().includes("paid")
-
-  const outstanding = sales.filter(s => !isPaid(s))
+  const outstanding = sales.filter(s => !isPaid(s) && !isPartial(s))
+  const partiallyPaid = sales.filter(s => isPartial(s))
   const paid = sales.filter(s => isPaid(s))
   const totalOutstanding = outstanding.reduce((sum, s) => sum + s.total_amount, 0)
   const totalCollected = paid.reduce((sum, s) => sum + s.total_amount, 0)
 
-  const filtered = filter === "outstanding" ? outstanding : filter === "paid" ? paid : sales
+  const filtered = filter === "outstanding" ? [...outstanding, ...partiallyPaid] : filter === "paid" ? paid : sales
 
   if (!tableReady) {
     return (
@@ -136,7 +165,7 @@ export function CreditorsTab() {
               <span className="text-xs font-semibold text-red-600 uppercase">Outstanding</span>
             </div>
             <p className="text-2xl font-black text-red-700">Ksh {totalOutstanding.toLocaleString()}</p>
-            <p className="text-xs text-red-500 mt-0.5">{outstanding.length} unpaid {outstanding.length === 1 ? "sale" : "sales"}</p>
+            <p className="text-xs text-red-500 mt-0.5">{outstanding.length + partiallyPaid.length} unpaid {outstanding.length + partiallyPaid.length === 1 ? "sale" : "sales"}{partiallyPaid.length > 0 ? ` (${partiallyPaid.length} partial)` : ""}</p>
           </CardContent>
         </Card>
         <Card className="border-green-200 bg-green-50">
@@ -229,9 +258,21 @@ export function CreditorsTab() {
                     </div>
 
                     <div className="text-right shrink-0 space-y-2">
-                      <p className={cn("text-xl font-black", paid_ ? "text-green-700" : "text-red-600")}>
-                        Ksh {sale.total_amount.toLocaleString()}
-                      </p>
+                      {isPartial(sale) ? (
+                        <>
+                          <p className="text-xl font-black text-orange-600">
+                            Ksh {getRemainingBalance(sale).toLocaleString()}
+                          </p>
+                          <p className="text-xs text-gray-400">of Ksh {sale.total_amount.toLocaleString()}</p>
+                          <Badge className="bg-orange-100 text-orange-700 border-orange-200 block text-center">
+                            Partial
+                          </Badge>
+                        </>
+                      ) : (
+                        <p className={cn("text-xl font-black", paid_ ? "text-green-700" : "text-red-600")}>
+                          Ksh {sale.total_amount.toLocaleString()}
+                        </p>
+                      )}
                       {paid_ ? (
                         <Badge className="bg-green-100 text-green-700 border-green-200">
                           <CheckCircle className="h-3 w-3 mr-1" /> Paid
@@ -242,7 +283,7 @@ export function CreditorsTab() {
                           onClick={() => openPayDialog(sale)}
                           className="bg-green-600 hover:bg-green-700 text-white text-xs px-3 h-7"
                         >
-                          Mark Paid
+                          {isPartial(sale) ? "Collect More" : "Record Payment"}
                         </Button>
                       )}
                     </div>
@@ -258,18 +299,25 @@ export function CreditorsTab() {
       <Dialog open={!!payDialog} onOpenChange={() => setPayDialog(null)}>
         <DialogContent className="sm:max-w-sm mx-4">
           <DialogHeader>
-            <DialogTitle>Mark Credit as Paid</DialogTitle>
+            <DialogTitle>Record Payment</DialogTitle>
           </DialogHeader>
           {payDialog && (
             <div className="space-y-4 pt-1">
               <div className="bg-gray-50 rounded-xl p-3">
                 <p className="font-semibold text-gray-800">{payDialog.sale.customer?.name ?? "Walk-in Customer"}</p>
                 <p className="text-sm text-gray-500">{payDialog.sale.plant_name || "Seedlings"} — {payDialog.sale.quantity.toLocaleString()} units</p>
-                <p className="text-lg font-bold text-green-700 mt-1">Ksh {payDialog.sale.total_amount.toLocaleString()}</p>
+                <div className="flex items-baseline gap-2 mt-1">
+                  <p className="text-lg font-bold text-red-600">
+                    Ksh {getRemainingBalance(payDialog.sale).toLocaleString()} remaining
+                  </p>
+                  {isPartial(payDialog.sale) && (
+                    <p className="text-xs text-gray-400">of Ksh {payDialog.sale.total_amount.toLocaleString()} total</p>
+                  )}
+                </div>
               </div>
 
               <div className="space-y-1.5">
-                <Label>Amount Received (Ksh)</Label>
+                <Label>Amount Collected (Ksh)</Label>
                 <Input
                   type="number"
                   value={payDialog.amount}
@@ -294,7 +342,7 @@ export function CreditorsTab() {
                   Cancel
                 </Button>
                 <Button className="flex-1 bg-green-600 hover:bg-green-700 text-white" onClick={markAsPaid} disabled={paying}>
-                  {paying ? "Saving..." : "Confirm Payment"}
+                  {paying ? "Saving..." : Number(payDialog?.amount) >= getRemainingBalance(payDialog!.sale) - 0.01 ? "Mark Settled" : "Record Partial"}
                 </Button>
               </div>
             </div>

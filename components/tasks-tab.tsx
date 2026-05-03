@@ -90,6 +90,21 @@ export function TasksTab() {
   const completedTasks = tasks.filter((task) => task.status === "Completed").length
   const averageCost = totalTasks > 0 ? totalCost / totalTasks : 0
 
+  // Staff hours/pay summary
+  const staffSummary = tasks.reduce((acc: Record<string, { tasks: number; hours: number; clockedHours: number; cost: number }>, task) => {
+    const name = task.assigned_to || "Unassigned"
+    if (!acc[name]) acc[name] = { tasks: 0, hours: 0, clockedHours: 0, cost: 0 }
+    acc[name].tasks++
+    acc[name].hours += task.labor_hours || 0
+    acc[name].cost += task.labor_cost || 0
+    if (task.clock_in_at && task.clock_out_at) {
+      const hrs = (new Date(task.clock_out_at).getTime() - new Date(task.clock_in_at).getTime()) / 3600000
+      acc[name].clockedHours += Math.max(0, hrs)
+    }
+    return acc
+  }, {})
+  const staffRows = Object.entries(staffSummary).sort((a, b) => b[1].cost - a[1].cost)
+
   const getStatusBadgeVariant = (status: string) => {
     switch (status) {
       case "Completed":
@@ -149,6 +164,60 @@ export function TasksTab() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Staff Hours & Pay Summary */}
+      {staffRows.length > 0 && (
+        <Card>
+          <CardHeader className="px-4 py-3">
+            <CardTitle className="text-sm font-semibold flex items-center gap-2">
+              <Clock className="h-4 w-4 text-blue-500" /> Staff Hours &amp; Pay Summary
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="px-0 pb-0">
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="border-b bg-muted/30">
+                    <th className="text-left px-4 py-2 font-semibold text-muted-foreground">Staff Member</th>
+                    <th className="text-center px-3 py-2 font-semibold text-muted-foreground">Tasks</th>
+                    <th className="text-center px-3 py-2 font-semibold text-muted-foreground">Planned Hrs</th>
+                    <th className="text-center px-3 py-2 font-semibold text-muted-foreground">Clocked Hrs</th>
+                    <th className="text-right px-4 py-2 font-semibold text-muted-foreground">Labor Pay</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {staffRows.map(([name, s]) => (
+                    <tr key={name} className="border-b last:border-0 hover:bg-muted/20">
+                      <td className="px-4 py-2.5 font-medium">{name}</td>
+                      <td className="px-3 py-2.5 text-center text-muted-foreground">{s.tasks}</td>
+                      <td className="px-3 py-2.5 text-center">{s.hours > 0 ? `${s.hours.toFixed(1)}h` : "—"}</td>
+                      <td className="px-3 py-2.5 text-center">
+                        {s.clockedHours > 0 ? (
+                          <span className={`font-medium ${s.clockedHours >= s.hours * 0.9 ? "text-green-600" : "text-amber-600"}`}>
+                            {s.clockedHours.toFixed(1)}h
+                          </span>
+                        ) : "—"}
+                      </td>
+                      <td className="px-4 py-2.5 text-right font-semibold text-primary">
+                        Ksh {s.cost.toLocaleString()}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot>
+                  <tr className="bg-muted/40 font-semibold">
+                    <td className="px-4 py-2">Total</td>
+                    <td className="px-3 py-2 text-center">{staffRows.reduce((s, [, v]) => s + v.tasks, 0)}</td>
+                    <td className="px-3 py-2 text-center">{staffRows.reduce((s, [, v]) => s + v.hours, 0).toFixed(1)}h</td>
+                    <td className="px-3 py-2 text-center">{staffRows.reduce((s, [, v]) => s + v.clockedHours, 0).toFixed(1)}h</td>
+                    <td className="px-4 py-2 text-right text-primary">Ksh {staffRows.reduce((s, [, v]) => s + v.cost, 0).toLocaleString()}</td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Modern Filters and Add Button */}
       <div className="modern-filters">
