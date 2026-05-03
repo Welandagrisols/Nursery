@@ -23,7 +23,16 @@ export function ErrorBoundary({ children }: ErrorBoundaryProps) {
 
     const rejectionHandler = (event: PromiseRejectionEvent) => {
       console.error("Unhandled promise rejection:", event.reason)
-      setError(event.reason instanceof Error ? event.reason : new Error(String(event.reason)))
+      const reason = event.reason
+      let msg = "An unexpected error occurred. Please try again."
+      if (reason instanceof Error) {
+        msg = reason.message
+      } else if (reason && typeof reason === "object") {
+        msg = (reason as any).message || (reason as any).details || (reason as any).hint || JSON.stringify(reason)
+      } else if (typeof reason === "string") {
+        msg = reason
+      }
+      setError(new Error(msg))
       setHasError(true)
     }
 

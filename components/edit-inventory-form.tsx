@@ -306,7 +306,7 @@ export function EditInventoryForm({ item, onSuccess, onCancel }: EditInventoryFo
         updated_at: new Date().toISOString(),
       }
 
-      const { data, error } = await (supabase.from("vnms_batches") as any).update(updateData).eq("id", item.id)
+      const { data, error } = await (supabase.from("vnms_batches") as any).update(updateData).eq("id", item.id).select()
 
       if (error) {
         console.error("Update error:", error)
@@ -320,8 +320,10 @@ export function EditInventoryForm({ item, onSuccess, onCancel }: EditInventoryFo
           : `Plant updated successfully. Cost per seedling: Ksh ${calculatedCostPerSeedling.toFixed(2)}`,
       })
 
-      // Send notification for inventory update
-      await notificationService.notifyInventoryUpdate(data[0], 'updated')
+      // Send notification for inventory update (only if data returned)
+      if (data && data[0]) {
+        await notificationService.notifyInventoryUpdate(data[0], 'updated').catch(() => {})
+      }
 
       onSuccess()
     } catch (error: any) {

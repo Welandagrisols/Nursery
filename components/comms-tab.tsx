@@ -477,13 +477,13 @@ export function CommsTab() {
 
               <div className="text-center">
                 <a
-                  href="https://wa.me/"
+                  href="https://web.whatsapp.com"
                   target="_blank"
                   rel="noreferrer"
                   className="inline-flex items-center gap-2 text-sm text-[#25D366] font-semibold hover:underline"
                 >
                   <MessageCircle className="h-4 w-4" />
-                  Open WhatsApp in browser (web.whatsapp.com)
+                  Open WhatsApp Web
                 </a>
               </div>
             </CardContent>

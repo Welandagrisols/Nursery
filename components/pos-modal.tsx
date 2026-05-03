@@ -116,7 +116,7 @@ export function POSModal({ open, onClose, onSaleComplete }: Props) {
 
     const [batchRes, custRes, priceRes] = await Promise.all([
       supabase.from("vnms_batches").select("id, plant_name, batch_code, lifecycle_status, quantity, available_stock, price, crop_type")
-        .eq("lifecycle_status", "selling").gt("quantity", 0),
+        .in("lifecycle_status", ["selling", "ready", "Ready", "Selling"]).gt("quantity", 0),
       supabase.from("vnms_customers").select("id, name, phone, contact").order("name"),
       supabase.from("vnms_prices").select("*").order("min_quantity"),
     ])
