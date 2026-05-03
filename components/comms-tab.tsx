@@ -477,13 +477,17 @@ export function CommsTab() {
 
               <div className="text-center">
                 <a
-                  href="https://web.whatsapp.com"
+                  href={typeof window !== "undefined" && /android|iphone|ipad|ipod/i.test(navigator.userAgent)
+                    ? "whatsapp://"
+                    : "https://web.whatsapp.com"}
                   target="_blank"
                   rel="noreferrer"
                   className="inline-flex items-center gap-2 text-sm text-[#25D366] font-semibold hover:underline"
                 >
                   <MessageCircle className="h-4 w-4" />
-                  Open WhatsApp Web
+                  {typeof window !== "undefined" && /android|iphone|ipad|ipod/i.test(navigator.userAgent)
+                    ? "Open WhatsApp App"
+                    : "Open WhatsApp Web"}
                 </a>
               </div>
             </CardContent>
