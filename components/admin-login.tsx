@@ -2,6 +2,8 @@
 
 import { useState } from 'react'
 import { useAuth } from '@/contexts/auth-context'
+import { useRole } from '@/contexts/role-context'
+import { isDemoMode } from '@/lib/supabase'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -10,7 +12,8 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { LoadingSpinner } from '@/components/loading-spinner'
 import { ThemeToggle } from '@/components/theme-toggle'
 import { StaffPinLogin } from '@/components/staff-pin-login'
-import { Eye, EyeOff, ShieldCheck, Users } from 'lucide-react'
+import { Eye, EyeOff, ShieldCheck, Users, FlaskConical } from 'lucide-react'
+import { DEMO_STAFF } from '@/contexts/role-context'
 
 type Screen = "choose" | "owner" | "staff"
 
@@ -24,6 +27,12 @@ export function AdminLogin() {
   const [info, setInfo] = useState('')
   const [mode, setMode] = useState<'signin' | 'signup' | 'forgot'>('signin')
   const { signIn, signUp, resetPassword } = useAuth()
+  const { loginStaff } = useRole()
+
+  const handleDemoOwnerLogin = async () => {
+    const owner = DEMO_STAFF.find(s => s.role === 'owner')!
+    await loginStaff(owner.id, "1234")
+  }
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -132,6 +141,23 @@ export function AdminLogin() {
                   {mode === 'signup' && 'Create Owner / Manager Account'}
                   {mode === 'forgot' && 'Reset Your Password'}
                 </p>
+
+                {isDemoMode && (
+                  <div className="rounded-xl bg-amber-50 border border-amber-200 p-4 space-y-3">
+                    <p className="text-sm text-amber-800 font-semibold flex items-center gap-2">
+                      <FlaskConical className="h-4 w-4 shrink-0" /> Demo Mode — Supabase not connected
+                    </p>
+                    <p className="text-xs text-amber-700">
+                      Email login requires Supabase. You can continue as a demo owner instead.
+                    </p>
+                    <Button
+                      onClick={handleDemoOwnerLogin}
+                      className="w-full bg-amber-600 hover:bg-amber-700 text-white font-semibold"
+                    >
+                      Continue as Demo Owner
+                    </Button>
+                  </div>
+                )}
 
                 <form onSubmit={handleSignIn} className="space-y-4">
                   <div className="space-y-1.5">

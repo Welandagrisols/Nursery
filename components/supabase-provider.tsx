@@ -2,7 +2,7 @@
 'use client'
 
 import { createContext, useContext, useEffect, useState } from 'react'
-import { supabase } from '@/lib/supabase'
+import { supabase, isDemoMode } from '@/lib/supabase'
 import type { User } from '@supabase/supabase-js'
 
 interface SupabaseContextType {
@@ -20,13 +20,21 @@ export function SupabaseProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null)
+    if (isDemoMode) {
       setLoading(false)
-    })
+      return
+    }
 
-    // Listen for auth changes
+    supabase.auth.getSession()
+      .then(({ data: { session } }) => {
+        setUser(session?.user ?? null)
+        setLoading(false)
+      })
+      .catch(() => {
+        setUser(null)
+        setLoading(false)
+      })
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         setUser(session?.user ?? null)

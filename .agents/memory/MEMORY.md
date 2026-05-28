@@ -1,0 +1,1 @@
+- [Demo Mode Safety](demo-mode-safety.md) — Supabase placeholder URL must never throw; auth loading state must initialize based on isDemoMode to prevent stuck screens.

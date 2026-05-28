@@ -105,6 +105,21 @@ function PricingSettings() {
     const { id, newPrice, tier } = pendingEdit
 
     setVerifyingPin(true)
+
+    if (isDemoMode) {
+      const storedPin = localStorage.getItem("vnms_owner_pin") || "1234"
+      setVerifyingPin(false)
+      if (pin !== storedPin) {
+        toast({ title: "Wrong PIN", description: "Incorrect owner PIN.", variant: "destructive" }); return
+      }
+      setPinDialog(false)
+      setTiers(prev => prev.map(t => t.id === id ? { ...t, price_per_seedling: newPrice } : t))
+      setEditingId(null)
+      setPendingEdit(null)
+      toast({ title: "Price updated", description: `${tier.customer_type} → Ksh ${newPrice.toFixed(2)} per seedling` })
+      return
+    }
+
     const { data: isValid, error: verifyError } = await (supabase.rpc("vnms_verify_owner_pin", {
       p_pin: pin,
     }) as any)
@@ -291,6 +306,12 @@ function OwnerPinCard() {
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
+    if (isDemoMode) {
+      const stored = localStorage.getItem("vnms_owner_pin")
+      setIsConfigured(!!stored)
+      setCheckingConfig(false)
+      return
+    }
     ;(async () => {
       const { data, error } = await (supabase.rpc("vnms_is_owner_pin_configured") as any)
       if (error) {
@@ -310,6 +331,20 @@ function OwnerPinCard() {
       return toast({ title: "PINs don't match", variant: "destructive" })
     }
     setSaving(true)
+
+    if (isDemoMode) {
+      if (isConfigured && localStorage.getItem("vnms_owner_pin") !== currentPin) {
+        setSaving(false)
+        return toast({ title: "Wrong current PIN", variant: "destructive" })
+      }
+      localStorage.setItem("vnms_owner_pin", newPin)
+      setSaving(false)
+      setIsConfigured(true)
+      setCurrentPin(""); setNewPin(""); setConfirmPin("")
+      toast({ title: "Owner PIN updated", description: "PIN saved locally for demo mode." })
+      return
+    }
+
     const { data, error } = await (supabase.rpc("vnms_set_owner_pin", {
       p_current_pin: currentPin || null,
       p_new_pin: newPin,

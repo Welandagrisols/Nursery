@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { supabase } from "@/lib/supabase"
+import { supabase, isDemoMode } from "@/lib/supabase"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -62,17 +62,28 @@ export function StaffManagement() {
 
   const fetchStaff = async () => {
     setLoading(true)
-    const { data, error } = await (supabase.from("vnms_staff") as any)
-      .select("*")
-      .order("name")
-
-    if (error?.code === "42P01") {
+    if (isDemoMode) {
+      setStaff([])
       setTableReady(false)
-    } else {
-      setStaff(data ?? [])
-      setTableReady(true)
+      setLoading(false)
+      return
     }
-    setLoading(false)
+    try {
+      const { data, error } = await (supabase.from("vnms_staff") as any)
+        .select("*")
+        .order("name")
+
+      if (error?.code === "42P01") {
+        setTableReady(false)
+      } else {
+        setStaff(data ?? [])
+        setTableReady(true)
+      }
+    } catch {
+      setTableReady(false)
+    } finally {
+      setLoading(false)
+    }
   }
 
   const openAdd = () => {

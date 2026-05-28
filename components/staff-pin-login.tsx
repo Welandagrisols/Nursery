@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { supabase } from "@/lib/supabase"
+import { supabase, isDemoMode } from "@/lib/supabase"
 import { useRole } from "@/contexts/role-context"
 import { cn } from "@/lib/utils"
 import { ChevronLeft } from "lucide-react"
@@ -41,6 +41,12 @@ export function StaffPinLogin({ onBack }: Props) {
 
   useEffect(() => {
     ;(async () => {
+      if (isDemoMode) {
+        const { DEMO_STAFF } = await import("@/contexts/role-context")
+        setStaff(DEMO_STAFF.map(s => ({ id: s.id, name: s.name, role: s.role })))
+        setFetching(false)
+        return
+      }
       const { data } = await (supabase.from("vnms_staff") as any)
         .select("id, name, role")
         .eq("is_active", true)

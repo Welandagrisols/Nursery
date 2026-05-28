@@ -1,7 +1,7 @@
 "use client"
 
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
-import { supabase } from '@/lib/supabase'
+import { supabase, isDemoMode } from '@/lib/supabase'
 import { User, Session } from '@supabase/supabase-js'
 
 interface AuthContextType {
@@ -33,11 +33,18 @@ interface AuthProviderProps {
 export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<User | null>(null)
   const [session, setSession] = useState<Session | null>(null)
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(!isDemoMode)
 
   useEffect(() => {
     let mounted = true
     let timeoutId: NodeJS.Timeout | undefined
+
+    if (isDemoMode) {
+      setUser(null)
+      setSession(null)
+      setLoading(false)
+      return
+    }
 
     const getSession = async () => {
       try {

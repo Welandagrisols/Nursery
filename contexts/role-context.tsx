@@ -1,7 +1,7 @@
 "use client"
 
 import { createContext, useContext, useState, useEffect, ReactNode } from "react"
-import { supabase } from "@/lib/supabase"
+import { supabase, isDemoMode } from "@/lib/supabase"
 import { compare } from "bcryptjs"
 
 export type StaffRole = "owner" | "manager" | "sales" | "worker"
@@ -18,6 +18,13 @@ export const ROLE_TABS: Record<StaffRole, string[]> = {
   sales:   ["dashboard", "sales", "customers", "website"],
   worker:  ["tasks", "layout"],
 }
+
+const DEMO_STAFF: StaffUser[] = [
+  { id: "demo-owner",   name: "Grace (Owner)",   role: "owner" },
+  { id: "demo-manager", name: "Mary (Manager)",  role: "manager" },
+  { id: "demo-sales",   name: "John (Sales)",    role: "sales" },
+  { id: "demo-worker",  name: "Samuel (Worker)", role: "worker" },
+]
 
 interface RoleContextValue {
   staffUser: StaffUser | null
@@ -56,6 +63,15 @@ export function RoleProvider({ children }: { children: ReactNode }) {
   const loginStaff = async (staffId: string, pin: string): Promise<{ error?: string }> => {
     try {
       if (!/^\d{4}$/.test(pin)) return { error: "PIN must be exactly 4 digits." }
+
+      if (isDemoMode) {
+        const demoUser = DEMO_STAFF.find(s => s.id === staffId)
+        if (!demoUser) return { error: "Staff member not found." }
+        if (pin !== "1234") return { error: "Wrong PIN. Try again. (Demo PIN: 1234)" }
+        setStaffUser(demoUser)
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(demoUser))
+        return {}
+      }
 
       const { data, error } = await (supabase.from("vnms_staff") as any)
         .select("id, name, role, pin_hash")
@@ -97,3 +113,5 @@ export function RoleProvider({ children }: { children: ReactNode }) {
     </RoleContext.Provider>
   )
 }
+
+export { DEMO_STAFF }

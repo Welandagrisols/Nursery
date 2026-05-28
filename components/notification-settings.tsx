@@ -10,29 +10,39 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Bell, Mail, AlertCircle, TrendingUp, CheckSquare } from 'lucide-react'
 import { toast } from '@/hooks/use-toast'
-import { supabase } from '@/lib/supabase'
+import { supabase, isDemoMode } from '@/lib/supabase'
+
+const SETTINGS_KEY = 'vnms_notification_settings'
+
+const DEFAULT_SETTINGS = {
+  lowStockEnabled: true,
+  newSaleEnabled: true,
+  taskDueEnabled: true,
+  inventoryUpdateEnabled: false,
+  lowStockThreshold: 20,
+  emailAddresses: ['chepkoechjoan55@gmail.com', 'wesleykoech2022@gmail.com'],
+}
 
 export function NotificationSettings() {
-  const [settings, setSettings] = useState({
-    lowStockEnabled: true,
-    newSaleEnabled: true,
-    taskDueEnabled: true,
-    inventoryUpdateEnabled: false,
-    lowStockThreshold: 20,
-    emailAddresses: ['chepkoechjoan55@gmail.com', 'wesleykoech2022@gmail.com']
-  })
-
+  const [settings, setSettings] = useState(DEFAULT_SETTINGS)
   const [recentNotifications, setRecentNotifications] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
+    try {
+      const stored = localStorage.getItem(SETTINGS_KEY)
+      if (stored) {
+        setSettings({ ...DEFAULT_SETTINGS, ...JSON.parse(stored) })
+      }
+    } catch {}
     loadRecentNotifications()
   }, [])
 
   const loadRecentNotifications = async () => {
+    if (isDemoMode) return
     try {
       const { data, error } = await supabase
-        .from('email_notifications')
+        .from('email_notifications' as any)
         .select('*')
         .order('created_at', { ascending: false })
         .limit(10)
@@ -47,7 +57,7 @@ export function NotificationSettings() {
   const handleSaveSettings = async () => {
     setLoading(true)
     try {
-      // In a real implementation, you'd save these to a settings table
+      localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings))
       toast({
         title: "Settings Saved",
         description: "Your notification preferences have been updated.",
@@ -97,7 +107,6 @@ export function NotificationSettings() {
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
-        {/* Notification Types */}
         <Card>
           <CardHeader>
             <CardTitle>Notification Types</CardTitle>
@@ -189,7 +198,6 @@ export function NotificationSettings() {
           </CardContent>
         </Card>
 
-        {/* Email Recipients */}
         <Card>
           <CardHeader>
             <CardTitle>Email Recipients</CardTitle>
@@ -217,7 +225,6 @@ export function NotificationSettings() {
         </Card>
       </div>
 
-      {/* Recent Notifications */}
       <Card>
         <CardHeader>
           <CardTitle>Recent Notifications</CardTitle>

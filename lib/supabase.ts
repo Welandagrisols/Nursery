@@ -17,14 +17,9 @@ const normalizeSupabaseUrl = (value?: string): string | undefined => {
 
 const supabaseUrl = normalizeSupabaseUrl(rawSupabaseUrl)
 
-console.log("Supabase URL:", supabaseUrl)
-console.log("Supabase Key:", supabaseAnonKey ? "Set" : "Not set")
-
 // Check if we have valid Supabase configuration
-const hasValidUrl = supabaseUrl && supabaseUrl.startsWith("https://") && supabaseUrl.includes(".supabase.co")
-const hasValidKey = supabaseAnonKey && supabaseAnonKey.length > 50
-
-console.log("Is valid URL:", hasValidUrl)
+const hasValidUrl = supabaseUrl && supabaseUrl.startsWith("https://") && supabaseUrl.includes(".")
+const hasValidKey = supabaseAnonKey && supabaseAnonKey.length > 20
 
 // Check if we're in demo mode (missing required env vars)
 export const isDemoMode =
@@ -35,30 +30,20 @@ export const isDemoMode =
   rawSupabaseUrl === "your-project-url" ||
   supabaseAnonKey === "your-anon-key"
 
-console.log("Is Demo Mode:", isDemoMode)
-
-// If env config is invalid, fail fast with a clear message.
 if (isDemoMode) {
-  const details = {
-    hasUrl: !!supabaseUrl,
-    hasValidUrl,
-    hasKey: !!supabaseAnonKey,
-    hasValidKey,
-  }
-  console.error("Invalid Supabase environment configuration:", details)
-  throw new Error(
-    "Missing or invalid Supabase environment variables. Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in .env.local."
-  )
+  console.info("[Demo Mode] Supabase credentials not configured — running with demo data.")
 }
 
-const validSupabaseUrl = supabaseUrl!
-const validSupabaseAnonKey = supabaseAnonKey!
+// Use real credentials if available, otherwise use a safe placeholder
+// (the isDemoMode flag prevents any real API calls from being made)
+const effectiveUrl = (hasValidUrl && supabaseUrl) ? supabaseUrl : "https://placeholder.supabase.co"
+const effectiveKey = (hasValidKey && supabaseAnonKey) ? supabaseAnonKey : "placeholder-key-for-demo-mode-only"
 
 // Create a single supabase client for internal use only
-export const supabase = createClient<Database>(validSupabaseUrl, validSupabaseAnonKey, {
+export const supabase = createClient<Database>(effectiveUrl, effectiveKey, {
   auth: {
-    persistSession: true,
-    autoRefreshToken: true,
+    persistSession: !isDemoMode,
+    autoRefreshToken: !isDemoMode,
   },
 })
 
