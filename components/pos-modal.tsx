@@ -34,7 +34,7 @@ interface Props {
 
 export function POSModal({ open, onClose, onSaleComplete }: Props) {
   const { user } = useAuth()
-  const { nurseryName } = useNursery()
+  const { nurseryName, logoUrl } = useNursery()
   const { toast } = useToast()
   const receiptRef = useRef<HTMLDivElement>(null)
 
@@ -226,8 +226,10 @@ body { font-family: 'Courier New', Courier, monospace; font-size: 11pt; color: #
 .divider { border-top: 1px dashed #000; margin: 2mm 0; }
 .total-row { display: flex; justify-content: space-between; font-size: 13pt; font-weight: bold; margin: 2mm 0; }
 </style></head><body>
-<div class="center bold" style="font-size:13pt; margin-bottom:2mm;">${nurseryName.toUpperCase()}</div>
-<div class="center small">Vegetable Nursery Management</div>
+${logoUrl
+      ? `<div class="center" style="margin-bottom:3mm;"><img src="${logoUrl}" alt="" style="max-height:20mm; max-width:60mm; object-fit:contain;" /></div><div class="center small"><strong>${nurseryName}</strong></div>`
+      : `<div class="center bold" style="font-size:13pt; margin-bottom:2mm;">${nurseryName.toUpperCase()}</div><div class="center small">Vegetable Nursery Management</div>`
+    }
 <div class="divider"></div>
 <div class="row"><span>Receipt #</span><span class="bold">${receiptNumber}</span></div>
 <div class="row"><span>Date</span><span>${dateStr}</span></div>

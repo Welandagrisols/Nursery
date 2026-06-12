@@ -10,9 +10,10 @@ import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { useToast } from "@/components/ui/use-toast"
-import { Settings, DollarSign, Lock, Plus, Edit2, Save, X, History, Users, Building2, MapPin, Coins } from "lucide-react"
+import { Settings, DollarSign, Lock, Plus, Edit2, Save, X, History, Users, Building2, MapPin, Coins, Upload, Trash2, ImageIcon } from "lucide-react"
 import { StaffManagement } from "@/components/staff-management"
 import { useNursery } from "@/contexts/nursery-context"
+import { useRef } from "react"
 
 interface PriceTier {
   id: string
@@ -255,13 +256,40 @@ function PricingSettings() {
   )
 }
 
+/** Resize & compress an image file to a small base64 JPEG for localStorage */
+async function compressImage(file: File, maxPx = 240, quality = 0.85): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      const img = new Image()
+      img.onload = () => {
+        const scale = Math.min(1, maxPx / Math.max(img.width, img.height))
+        const w = Math.round(img.width * scale)
+        const h = Math.round(img.height * scale)
+        const canvas = document.createElement("canvas")
+        canvas.width = w
+        canvas.height = h
+        const ctx = canvas.getContext("2d")!
+        ctx.drawImage(img, 0, 0, w, h)
+        resolve(canvas.toDataURL("image/jpeg", quality))
+      }
+      img.onerror = reject
+      img.src = e.target?.result as string
+    }
+    reader.onerror = reject
+    reader.readAsDataURL(file)
+  })
+}
+
 function NursuryProfileCard() {
   const { toast } = useToast()
-  const { nurseryName, currency: ctxCurrency, location: ctxLocation, saveProfile } = useNursery()
+  const { nurseryName, currency: ctxCurrency, location: ctxLocation, logoUrl, saveProfile, saveLogo, removeLogo } = useNursery()
   const [name, setName] = useState(nurseryName)
   const [currency, setCurrency] = useState(ctxCurrency)
   const [location, setLocation] = useState(ctxLocation)
   const [saved, setSaved] = useState(false)
+  const [uploadingLogo, setUploadingLogo] = useState(false)
+  const fileRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     setName(nurseryName)
@@ -276,6 +304,26 @@ function NursuryProfileCard() {
     setTimeout(() => setSaved(false), 2000)
   }
 
+  const handleLogoFile = async (file: File) => {
+    if (!file.type.startsWith("image/")) {
+      return toast({ title: "Please select an image file", variant: "destructive" })
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      return toast({ title: "Image too large — max 5 MB", variant: "destructive" })
+    }
+    setUploadingLogo(true)
+    try {
+      const compressed = await compressImage(file)
+      saveLogo(compressed)
+      toast({ title: "Logo saved", description: "It will appear on printed receipts and the price list." })
+    } catch {
+      toast({ title: "Could not process image", variant: "destructive" })
+    } finally {
+      setUploadingLogo(false)
+      if (fileRef.current) fileRef.current.value = ""
+    }
+  }
+
   return (
     <Card>
       <CardHeader>
@@ -283,37 +331,93 @@ function NursuryProfileCard() {
           <Building2 className="h-5 w-5 text-green-600" /> Nursery Profile
         </CardTitle>
         <p className="text-sm text-muted-foreground">
-          This name appears on receipts, WhatsApp messages, and the app header.
+          Name and logo appear on receipts, WhatsApp messages, and the price catalogue.
         </p>
       </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="space-y-1.5">
-          <Label className="flex items-center gap-1.5"><Building2 className="h-3.5 w-3.5" /> Nursery Name</Label>
-          <Input
-            value={name}
-            onChange={e => setName(e.target.value)}
-            placeholder="e.g. Grace Harvest Seedlings"
+      <CardContent className="space-y-5">
+
+        {/* Logo upload */}
+        <div className="space-y-2">
+          <Label className="flex items-center gap-1.5"><ImageIcon className="h-3.5 w-3.5" /> Nursery Logo</Label>
+
+          {logoUrl ? (
+            <div className="flex items-center gap-3">
+              <div className="w-20 h-20 rounded-xl border-2 border-green-200 bg-white flex items-center justify-center overflow-hidden shadow-sm">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={logoUrl} alt="Nursery logo" className="max-w-full max-h-full object-contain" />
+              </div>
+              <div className="flex flex-col gap-2">
+                <Button
+                  size="sm" variant="outline"
+                  onClick={() => fileRef.current?.click()}
+                  disabled={uploadingLogo}
+                  className="gap-1.5 text-xs"
+                >
+                  <Upload className="h-3 w-3" /> Change logo
+                </Button>
+                <Button
+                  size="sm" variant="ghost"
+                  onClick={removeLogo}
+                  className="gap-1.5 text-xs text-red-500 hover:text-red-600 hover:bg-red-50"
+                >
+                  <Trash2 className="h-3 w-3" /> Remove
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => fileRef.current?.click()}
+              disabled={uploadingLogo}
+              className="w-full border-2 border-dashed border-gray-200 rounded-xl py-6 flex flex-col items-center gap-2 text-gray-400 hover:border-green-400 hover:text-green-600 hover:bg-green-50 transition-colors disabled:opacity-50"
+            >
+              {uploadingLogo ? (
+                <><div className="h-7 w-7 rounded-full border-2 border-green-400 border-t-transparent animate-spin" /><span className="text-sm">Processing…</span></>
+              ) : (
+                <><Upload className="h-7 w-7" /><span className="text-sm font-medium">Click to upload logo</span><span className="text-xs">PNG, JPG or SVG · max 5 MB</span></>
+              )}
+            </button>
+          )}
+
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={e => { const f = e.target.files?.[0]; if (f) handleLogoFile(f) }}
           />
+          <p className="text-xs text-gray-400">Logo appears on printed receipts and the price list catalogue.</p>
         </div>
-        <div className="space-y-1.5">
-          <Label className="flex items-center gap-1.5"><Coins className="h-3.5 w-3.5" /> Currency</Label>
-          <Input
-            value={currency}
-            onChange={e => setCurrency(e.target.value)}
-            placeholder="e.g. Ksh"
-          />
+
+        <div className="border-t pt-4 space-y-4">
+          <div className="space-y-1.5">
+            <Label className="flex items-center gap-1.5"><Building2 className="h-3.5 w-3.5" /> Nursery Name</Label>
+            <Input
+              value={name}
+              onChange={e => setName(e.target.value)}
+              placeholder="e.g. Grace Harvest Seedlings"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label className="flex items-center gap-1.5"><Coins className="h-3.5 w-3.5" /> Currency</Label>
+            <Input
+              value={currency}
+              onChange={e => setCurrency(e.target.value)}
+              placeholder="e.g. Ksh"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label className="flex items-center gap-1.5"><MapPin className="h-3.5 w-3.5" /> Location</Label>
+            <Input
+              value={location}
+              onChange={e => setLocation(e.target.value)}
+              placeholder="e.g. Nairobi, Kenya"
+            />
+          </div>
+          <Button onClick={save} className="bg-green-600 hover:bg-green-700 text-white w-full">
+            {saved ? "✓ Saved" : "Save Profile"}
+          </Button>
         </div>
-        <div className="space-y-1.5">
-          <Label className="flex items-center gap-1.5"><MapPin className="h-3.5 w-3.5" /> Location</Label>
-          <Input
-            value={location}
-            onChange={e => setLocation(e.target.value)}
-            placeholder="e.g. Nairobi, Kenya"
-          />
-        </div>
-        <Button onClick={save} className="bg-green-600 hover:bg-green-700 text-white w-full">
-          {saved ? "✓ Saved" : "Save Profile"}
-        </Button>
       </CardContent>
     </Card>
   )

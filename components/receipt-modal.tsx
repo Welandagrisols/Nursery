@@ -38,6 +38,11 @@ function getNurseryName() {
   return localStorage.getItem("vnms_nursery_name") || "My Nursery"
 }
 
+function getNurseryLogo() {
+  if (typeof window === "undefined") return ""
+  return localStorage.getItem("vnms_nursery_logo") || ""
+}
+
 function buildWhatsAppText(sale: ReceiptSale): string {
   const nurseryName = getNurseryName()
   const lines = [
@@ -91,8 +96,11 @@ function printReceipt(sale: ReceiptSale) {
   </style>
 </head>
 <body>
-  <div class="center bold" style="font-size:13pt; margin-bottom:2mm;">${getNurseryName().toUpperCase()}</div>
-  <div class="center small">Vegetable Nursery Management</div>
+  ${getNurseryLogo()
+    ? `<div class="center" style="margin-bottom:3mm;"><img src="${getNurseryLogo()}" alt="" style="max-height:20mm; max-width:60mm; object-fit:contain;" /></div>`
+    : `<div class="center bold" style="font-size:13pt; margin-bottom:2mm;">${getNurseryName().toUpperCase()}</div>`
+  }
+  <div class="center small">${getNurseryLogo() ? `<strong>${getNurseryName()}</strong>` : "Vegetable Nursery Management"}</div>
   <div class="divider"></div>
   ${sale.receipt_number ? `<div class="row"><span>Receipt #</span><span class="bold">${sale.receipt_number}</span></div>` : ""}
   <div class="row"><span>Date</span><span>${dateStr}</span></div>

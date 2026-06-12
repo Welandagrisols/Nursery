@@ -7,7 +7,10 @@ interface NurseryContextValue {
   currency: string
   location: string
   initials: string
+  logoUrl: string       // base64 data URL or ""
   saveProfile: (name: string, currency: string, location: string) => void
+  saveLogo: (dataUrl: string) => void
+  removeLogo: () => void
 }
 
 const NurseryContext = createContext<NurseryContextValue>({
@@ -15,7 +18,10 @@ const NurseryContext = createContext<NurseryContextValue>({
   currency: "Ksh",
   location: "",
   initials: "MN",
+  logoUrl: "",
   saveProfile: () => {},
+  saveLogo: () => {},
+  removeLogo: () => {},
 })
 
 export function useNursery() {
@@ -33,6 +39,7 @@ export function NurseryProvider({ children }: { children: ReactNode }) {
   const [nurseryName, setNurseryName] = useState("My Nursery")
   const [currency, setCurrency] = useState("Ksh")
   const [location, setLocation] = useState("")
+  const [logoUrl, setLogoUrl] = useState("")
 
   useEffect(() => {
     if (typeof window === "undefined") return
@@ -42,6 +49,8 @@ export function NurseryProvider({ children }: { children: ReactNode }) {
     if (cur) setCurrency(cur)
     const loc = localStorage.getItem("vnms_nursery_location")
     if (loc) setLocation(loc)
+    const logo = localStorage.getItem("vnms_nursery_logo")
+    if (logo) setLogoUrl(logo)
   }, [])
 
   const saveProfile = useCallback((name: string, cur: string, loc: string) => {
@@ -53,15 +62,40 @@ export function NurseryProvider({ children }: { children: ReactNode }) {
     setLocation(loc)
   }, [])
 
+  const saveLogo = useCallback((dataUrl: string) => {
+    localStorage.setItem("vnms_nursery_logo", dataUrl)
+    setLogoUrl(dataUrl)
+  }, [])
+
+  const removeLogo = useCallback(() => {
+    localStorage.removeItem("vnms_nursery_logo")
+    setLogoUrl("")
+  }, [])
+
   return (
     <NurseryContext.Provider value={{
       nurseryName,
       currency,
       location,
       initials: getInitials(nurseryName),
+      logoUrl,
       saveProfile,
+      saveLogo,
+      removeLogo,
     }}>
       {children}
     </NurseryContext.Provider>
   )
+}
+
+/** Read logo from localStorage — for use inside non-component functions (print/WhatsApp) */
+export function getNurseryLogoFromStorage(): string {
+  if (typeof window === "undefined") return ""
+  return localStorage.getItem("vnms_nursery_logo") || ""
+}
+
+/** Read nursery name from localStorage — for use inside non-component functions */
+export function getNurseryNameFromStorage(): string {
+  if (typeof window === "undefined") return "My Nursery"
+  return localStorage.getItem("vnms_nursery_name") || "My Nursery"
 }

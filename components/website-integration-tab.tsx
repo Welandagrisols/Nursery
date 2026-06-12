@@ -30,7 +30,7 @@ const COMING_SOON_STATUSES = ["germination", "planted", "Planted", "Germination"
 
 export function PriceListTab() {
   const { toast } = useToast()
-  const { nurseryName } = useNursery()
+  const { nurseryName, logoUrl } = useNursery()
   const [batches, setBatches] = useState<Batch[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState("")
@@ -175,6 +175,10 @@ export function PriceListTab() {
         <div ref={printRef} className="space-y-6">
           {/* Print header — only visible when printing */}
           <div className="hidden print:block text-center mb-4 border-b pb-4">
+            {logoUrl && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={logoUrl} alt={nurseryName} className="h-16 object-contain mx-auto mb-2" />
+            )}
             <h1 className="text-2xl font-bold text-green-800">{nurseryName}</h1>
             <p className="text-gray-500 text-sm">Price List — {new Date().toLocaleDateString("en-KE", { day: "numeric", month: "long", year: "numeric" })}</p>
           </div>
