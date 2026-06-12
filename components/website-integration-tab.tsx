@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
 import { useToast } from "@/components/ui/use-toast"
 import { Copy, Printer, RefreshCw, Search, Leaf, Check } from "lucide-react"
+import { useNursery } from "@/contexts/nursery-context"
 
 interface Batch {
   id: string
@@ -29,6 +30,7 @@ const COMING_SOON_STATUSES = ["germination", "planted", "Planted", "Germination"
 
 export function PriceListTab() {
   const { toast } = useToast()
+  const { nurseryName } = useNursery()
   const [batches, setBatches] = useState<Batch[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState("")
@@ -76,7 +78,7 @@ export function PriceListTab() {
 
   const buildWhatsAppMessage = () => {
     const date = new Date().toLocaleDateString("en-KE", { day: "numeric", month: "long", year: "numeric" })
-    let msg = `🌱 *Grace Harvest Seedlings — Price List*\n_Updated: ${date}_\n\n`
+    let msg = `🌱 *${nurseryName} — Price List*\n_Updated: ${date}_\n\n`
 
     if (filteredAvailable.length > 0) {
       msg += `✅ *AVAILABLE NOW*\n`
@@ -173,7 +175,7 @@ export function PriceListTab() {
         <div ref={printRef} className="space-y-6">
           {/* Print header — only visible when printing */}
           <div className="hidden print:block text-center mb-4 border-b pb-4">
-            <h1 className="text-2xl font-bold text-green-800">Grace Harvest Seedlings</h1>
+            <h1 className="text-2xl font-bold text-green-800">{nurseryName}</h1>
             <p className="text-gray-500 text-sm">Price List — {new Date().toLocaleDateString("en-KE", { day: "numeric", month: "long", year: "numeric" })}</p>
           </div>
 

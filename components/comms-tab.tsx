@@ -17,31 +17,34 @@ import {
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { PriceListTab } from "@/components/website-integration-tab"
+import { useNursery } from "@/contexts/nursery-context"
 
 /* ── Message templates ─────────────────────────────────── */
-const TEMPLATES = [
-  {
-    id: "availability",
-    label: "Product Update",
-    icon: Package,
-    build: (products: string) =>
-      `🌱 *GRACE HARVEST SEEDLINGS*\n\nHello! We currently have fresh seedlings available:\n\n${products}\n\nCall or WhatsApp us to place your order. Bulk orders welcome — delivery available.\n\n_Grace Harvest Seedlings — Quality Seedlings, Healthy Harvests_ 🌿`,
-  },
-  {
-    id: "promo",
-    label: "Special Offer",
-    icon: Share2,
-    build: (products: string) =>
-      `🎉 *SPECIAL OFFER — GRACE HARVEST SEEDLINGS*\n\nLimited-time pricing on selected seedlings:\n\n${products}\n\nFirst come, first served! Reserve yours today.\n\n_Grace Harvest Seedlings_ 📞`,
-  },
-  {
-    id: "ready",
-    label: "Order Ready",
-    icon: CheckCircle,
-    build: (products: string) =>
-      `✅ *YOUR ORDER IS READY — GRACE HARVEST SEEDLINGS*\n\nDear Valued Customer,\n\nYour seedling order is ready for pickup or delivery:\n\n${products}\n\nKindly confirm your preferred collection time. Thank you for choosing Grace Harvest! 🌿`,
-  },
-]
+function getTemplates(nurseryName: string) {
+  return [
+    {
+      id: "availability",
+      label: "Product Update",
+      icon: Package,
+      build: (products: string) =>
+        `🌱 *${nurseryName.toUpperCase()}*\n\nHello! We currently have fresh seedlings available:\n\n${products}\n\nCall or WhatsApp us to place your order. Bulk orders welcome — delivery available.\n\n_${nurseryName} — Quality Seedlings, Healthy Harvests_ 🌿`,
+    },
+    {
+      id: "promo",
+      label: "Special Offer",
+      icon: Share2,
+      build: (products: string) =>
+        `🎉 *SPECIAL OFFER — ${nurseryName.toUpperCase()}*\n\nLimited-time pricing on selected seedlings:\n\n${products}\n\nFirst come, first served! Reserve yours today.\n\n_${nurseryName}_ 📞`,
+    },
+    {
+      id: "ready",
+      label: "Order Ready",
+      icon: CheckCircle,
+      build: (products: string) =>
+        `✅ *YOUR ORDER IS READY — ${nurseryName.toUpperCase()}*\n\nDear Valued Customer,\n\nYour seedling order is ready for pickup or delivery:\n\n${products}\n\nKindly confirm your preferred collection time. Thank you for choosing ${nurseryName}! 🌿`,
+    },
+  ]
+}
 
 /* ── Social platforms ──────────────────────────────────── */
 const SOCIAL_KEYS = [
@@ -92,6 +95,8 @@ function Step({ n, text, sub }: { n: number; text: string; sub?: string }) {
 
 export function CommsTab() {
   const { toast } = useToast()
+  const { nurseryName } = useNursery()
+  const TEMPLATES = getTemplates(nurseryName)
 
   /* ── state ── */
   const [template, setTemplate] = useState("availability")

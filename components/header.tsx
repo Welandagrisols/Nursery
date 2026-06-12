@@ -20,6 +20,7 @@ import {
 } from "lucide-react"
 import { useIsMobile } from "@/hooks/use-mobile"
 import { Download } from "lucide-react"
+import { useNursery } from "@/contexts/nursery-context"
 
 interface HeaderProps {
   activeTab: string
@@ -42,6 +43,7 @@ const navigationItems = [
 
 export function Header({ activeTab, setActiveTab, mobileMenuOpen, setMobileMenuOpen }: HeaderProps) {
   const isMobile = useIsMobile()
+  const { nurseryName } = useNursery()
 
   const NavigationContent = () => (
     <div className="flex flex-col space-y-2 p-4">
@@ -72,7 +74,7 @@ export function Header({ activeTab, setActiveTab, mobileMenuOpen, setMobileMenuO
           <div className="flex items-center space-x-4">
             <div className="flex items-center space-x-2">
               <div>
-                <h1 className="text-xl font-bold">Grace Harvest Seedlings</h1>
+                <h1 className="text-xl font-bold">{nurseryName}</h1>
               </div>
             </div>
           </div>
@@ -112,7 +114,7 @@ export function Header({ activeTab, setActiveTab, mobileMenuOpen, setMobileMenuO
                   <div className="mt-6">
                     <div className="flex items-center space-x-2 mb-6">
                       <div>
-                        <h2 className="text-lg font-bold">Grace Harvest Seedlings</h2>
+                        <h2 className="text-lg font-bold">{nurseryName}</h2>
                       </div>
                     </div>
                     <NavigationContent />

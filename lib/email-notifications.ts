@@ -44,7 +44,7 @@ export const sendEmailNotification = async (notification: NotificationData) => {
 // Notification templates
 export const createLowStockNotification = (items: any[]): NotificationData => ({
   type: 'low_stock',
-  title: 'Low Stock Alert - Grace Harvest Seedlings',
+  title: 'Low Stock Alert - Nursery Manager',
   message: `Warning: ${items.length} item(s) are running low on stock:\n\n` +
     items.map(item => `• ${item.plant_name}: ${item.quantity} remaining`).join('\n') +
     '\n\nPlease restock these items soon.',
@@ -53,7 +53,7 @@ export const createLowStockNotification = (items: any[]): NotificationData => ({
 
 export const createNewSaleNotification = (sale: any): NotificationData => ({
   type: 'new_sale',
-  title: 'New Sale Recorded - Grace Harvest Seedlings',
+  title: 'New Sale Recorded - Nursery Manager',
   message: `A new sale has been recorded:\n\n` +
     `Customer: ${sale.customer_name}\n` +
     `Total Amount: $${sale.total_amount.toFixed(2)}\n` +
@@ -64,7 +64,7 @@ export const createNewSaleNotification = (sale: any): NotificationData => ({
 
 export const createTaskDueNotification = (tasks: any[]): NotificationData => ({
   type: 'task_due',
-  title: 'Tasks Due Today - Grace Harvest Seedlings',
+  title: 'Tasks Due Today - Nursery Manager',
   message: `You have ${tasks.length} task(s) due today:\n\n` +
     tasks.map(task => `• ${task.title} - ${task.description || 'No description'}`).join('\n') +
     '\n\nPlease complete these tasks as scheduled.',
@@ -73,7 +73,7 @@ export const createTaskDueNotification = (tasks: any[]): NotificationData => ({
 
 export const createInventoryUpdateNotification = (item: any, action: string): NotificationData => ({
   type: 'inventory_update',
-  title: 'Inventory Updated - Grace Harvest Seedlings',
+  title: 'Inventory Updated - Nursery Manager',
   message: `Inventory has been ${action}:\n\n` +
     `Seedling: ${item.plant_name}\n` +
     `Quantity: ${item.quantity}\n` +

@@ -1,7 +1,7 @@
 {
-  "name": "Grace Harvest Seedlings",
-  "short_name": "Grace Harvest",
-  "description": "Professional vegetable seedling nursery management for inventory, sales, and operations",
+  "name": "Nursery Manager",
+  "short_name": "Nursery Mgr",
+  "description": "Professional nursery management for seedling inventory, sales, and operations",
   "start_url": "/",
   "display": "standalone",
   "orientation": "portrait-primary",
@@ -15,7 +15,7 @@
   "prefer_related_applications": false,
   "lang": "en",
   "scope": "/",
-  "id": "grace-harvest-seedlings-app",
+  "id": "nursery-manager-app",
   "icons": [
     {
       "src": "/icon-192x192.png",
@@ -44,24 +44,14 @@
       "short_name": "Add Item",
       "description": "Quickly add new seedling inventory",
       "url": "/?tab=inventory",
-      "icons": [
-        {
-          "src": "/icon-192x192.png",
-          "sizes": "192x192"
-        }
-      ]
+      "icons": [{"src": "/icon-192x192.png", "sizes": "192x192"}]
     },
     {
       "name": "View Dashboard",
       "short_name": "Dashboard",
       "description": "View nursery overview",
       "url": "/?tab=dashboard",
-      "icons": [
-        {
-          "src": "/icon-192x192.png",
-          "sizes": "192x192"
-        }
-      ]
+      "icons": [{"src": "/icon-192x192.png", "sizes": "192x192"}]
     }
   ]
 }

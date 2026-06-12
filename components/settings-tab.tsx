@@ -10,8 +10,9 @@ import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { useToast } from "@/components/ui/use-toast"
-import { Settings, DollarSign, Lock, Plus, Edit2, Save, X, History, Users } from "lucide-react"
+import { Settings, DollarSign, Lock, Plus, Edit2, Save, X, History, Users, Building2, MapPin, Coins } from "lucide-react"
 import { StaffManagement } from "@/components/staff-management"
+import { useNursery } from "@/contexts/nursery-context"
 
 interface PriceTier {
   id: string
@@ -256,41 +257,63 @@ function PricingSettings() {
 
 function NursuryProfileCard() {
   const { toast } = useToast()
-  const [name, setName] = useState("")
-  const [currency, setCurrency] = useState("")
-  const [location, setLocation] = useState("")
+  const { nurseryName, currency: ctxCurrency, location: ctxLocation, saveProfile } = useNursery()
+  const [name, setName] = useState(nurseryName)
+  const [currency, setCurrency] = useState(ctxCurrency)
+  const [location, setLocation] = useState(ctxLocation)
+  const [saved, setSaved] = useState(false)
 
   useEffect(() => {
-    if (typeof window === "undefined") return
-    setName(localStorage.getItem("vnms_nursery_name") || "Grace Harvest Seedlings")
-    setCurrency(localStorage.getItem("vnms_nursery_currency") || "Kenyan Shillings (Ksh)")
-    setLocation(localStorage.getItem("vnms_nursery_location") || "Kenya")
-  }, [])
+    setName(nurseryName)
+    setCurrency(ctxCurrency)
+    setLocation(ctxLocation)
+  }, [nurseryName, ctxCurrency, ctxLocation])
 
   const save = () => {
-    localStorage.setItem("vnms_nursery_name", name)
-    localStorage.setItem("vnms_nursery_currency", currency)
-    localStorage.setItem("vnms_nursery_location", location)
-    toast({ title: "Profile saved" })
+    saveProfile(name.trim() || "My Nursery", currency.trim() || "Ksh", location.trim())
+    setSaved(true)
+    toast({ title: "Profile saved", description: "Your nursery name now appears everywhere in the app." })
+    setTimeout(() => setSaved(false), 2000)
   }
 
   return (
     <Card>
-      <CardHeader><CardTitle>Nursery Profile</CardTitle></CardHeader>
-      <CardContent className="space-y-3">
-        <div className="space-y-1">
-          <Label>Nursery Name</Label>
-          <Input value={name} onChange={e => setName(e.target.value)} />
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Building2 className="h-5 w-5 text-green-600" /> Nursery Profile
+        </CardTitle>
+        <p className="text-sm text-muted-foreground">
+          This name appears on receipts, WhatsApp messages, and the app header.
+        </p>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="space-y-1.5">
+          <Label className="flex items-center gap-1.5"><Building2 className="h-3.5 w-3.5" /> Nursery Name</Label>
+          <Input
+            value={name}
+            onChange={e => setName(e.target.value)}
+            placeholder="e.g. Grace Harvest Seedlings"
+          />
         </div>
-        <div className="space-y-1">
-          <Label>Currency</Label>
-          <Input value={currency} onChange={e => setCurrency(e.target.value)} />
+        <div className="space-y-1.5">
+          <Label className="flex items-center gap-1.5"><Coins className="h-3.5 w-3.5" /> Currency</Label>
+          <Input
+            value={currency}
+            onChange={e => setCurrency(e.target.value)}
+            placeholder="e.g. Ksh"
+          />
         </div>
-        <div className="space-y-1">
-          <Label>Location</Label>
-          <Input value={location} onChange={e => setLocation(e.target.value)} />
+        <div className="space-y-1.5">
+          <Label className="flex items-center gap-1.5"><MapPin className="h-3.5 w-3.5" /> Location</Label>
+          <Input
+            value={location}
+            onChange={e => setLocation(e.target.value)}
+            placeholder="e.g. Nairobi, Kenya"
+          />
         </div>
-        <Button onClick={save} className="bg-green-600 hover:bg-green-700 text-white">Save Profile</Button>
+        <Button onClick={save} className="bg-green-600 hover:bg-green-700 text-white w-full">
+          {saved ? "✓ Saved" : "Save Profile"}
+        </Button>
       </CardContent>
     </Card>
   )

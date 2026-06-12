@@ -1,6 +1,6 @@
-# Grace Harvest Seedlings
+# Nursery Manager
 
-Grace Harvest Seedlings is a comprehensive vegetable seedling nursery management PWA. It manages the full seed-to-sale lifecycle: nursery layout, batch/inventory management, POS, receipts, WhatsApp broadcasts, creditors, staff tasks, RBAC, reports, and comms. Touch/tablet-first design with bottom nav.
+Nursery Manager is a white-label vegetable seedling nursery management PWA sold by Agrisols Systems. Each customer (nursery) gets their own deployment with their own Supabase project. Grace Harvest Seedlings is one such customer. It manages the full seed-to-sale lifecycle: nursery layout, batch/inventory management, POS, receipts, WhatsApp broadcasts, creditors, staff tasks, RBAC, reports, and comms. Touch/tablet-first design with bottom nav.
 
 ## Architecture
 

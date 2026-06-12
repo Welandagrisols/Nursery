@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react"
 import { supabase, isDemoMode } from "@/lib/supabase"
 import { useAuth } from "@/contexts/auth-context"
+import { useNursery } from "@/contexts/nursery-context"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -33,6 +34,7 @@ interface Props {
 
 export function POSModal({ open, onClose, onSaleComplete }: Props) {
   const { user } = useAuth()
+  const { nurseryName } = useNursery()
   const { toast } = useToast()
   const receiptRef = useRef<HTMLDivElement>(null)
 
@@ -224,7 +226,7 @@ body { font-family: 'Courier New', Courier, monospace; font-size: 11pt; color: #
 .divider { border-top: 1px dashed #000; margin: 2mm 0; }
 .total-row { display: flex; justify-content: space-between; font-size: 13pt; font-weight: bold; margin: 2mm 0; }
 </style></head><body>
-<div class="center bold" style="font-size:13pt; margin-bottom:2mm;">GRACE HARVEST SEEDLINGS</div>
+<div class="center bold" style="font-size:13pt; margin-bottom:2mm;">${nurseryName.toUpperCase()}</div>
 <div class="center small">Vegetable Nursery Management</div>
 <div class="divider"></div>
 <div class="row"><span>Receipt #</span><span class="bold">${receiptNumber}</span></div>
@@ -240,7 +242,7 @@ ${selectedBatch?.batch_code ? `<div class="small">Batch: ${selectedBatch.batch_c
 <div class="row small"><span>Payment</span><span>${paymentMethod}${mpesaRef ? ` (${mpesaRef})` : ""}</span></div>
 <div class="divider"></div>
 <div class="center small" style="margin-top:3mm;">Thank you for your business!</div>
-<div class="center small">Grace Harvest Seedlings</div>
+<div class="center small">${nurseryName}</div>
 <br/><br/>
 </body></html>`
     const win = window.open("", "_blank", "width=300,height=600")
@@ -255,7 +257,7 @@ ${selectedBatch?.batch_code ? `<div class="small">Batch: ${selectedBatch.batch_c
     const phone = (selectedCustomer?.phone || selectedCustomer?.contact || "").replace(/\D/g, "")
     const dateStr = new Date().toLocaleDateString("en-KE", { day: "2-digit", month: "short", year: "numeric" })
     const lines = [
-      `🌱 *GRACE HARVEST SEEDLINGS*`,
+      `🌱 *${nurseryName.toUpperCase()}*`,
       `📍 Vegetable Nursery`,
       ``,
       `━━━━━━━━━━━━━━━━━━━━━`,
@@ -273,7 +275,7 @@ ${selectedBatch?.batch_code ? `<div class="small">Batch: ${selectedBatch.batch_c
       ``,
       `━━━━━━━━━━━━━━━━━━━━━`,
       `✅ *Thank you for your business!*`,
-      `_Grace Harvest Seedlings_`,
+      `_${nurseryName}_`,
     ].filter(l => l !== undefined).join("\n")
     const url = phone
       ? `https://wa.me/${phone}?text=${encodeURIComponent(lines)}`

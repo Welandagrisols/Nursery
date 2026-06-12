@@ -6,11 +6,12 @@ import { AuthProvider } from '@/contexts/auth-context'
 import { RoleProvider } from '@/contexts/role-context'
 import { AuthGuard } from '@/components/auth-guard'
 import { NotificationProvider } from '@/components/notification-provider'
+import { NurseryProvider } from '@/contexts/nursery-context'
 import { Toaster } from '@/components/ui/toaster'
 
 export const metadata: Metadata = {
-  title: 'Grace Harvest Seedlings - Nursery Management',
-  description: 'Comprehensive vegetable seedling nursery management for inventory, sales, and operations',
+  title: 'Nursery Manager',
+  description: 'Professional nursery management for seedling inventory, sales, and operations',
   manifest: '/manifest.json',
   icons: {
     icon: '/icon-192x192.png',
@@ -36,12 +37,14 @@ export default function RootLayout({
           <SupabaseProvider>
             <AuthProvider>
               <RoleProvider>
-                <NotificationProvider>
+                <NurseryProvider>
+                  <NotificationProvider>
                   <AuthGuard>
                     {children}
                   </AuthGuard>
                   <Toaster />
                 </NotificationProvider>
+                </NurseryProvider>
               </RoleProvider>
             </AuthProvider>
           </SupabaseProvider>

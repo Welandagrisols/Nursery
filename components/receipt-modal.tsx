@@ -33,9 +33,15 @@ function formatReceiptDate(dateStr: string) {
   })
 }
 
+function getNurseryName() {
+  if (typeof window === "undefined") return "My Nursery"
+  return localStorage.getItem("vnms_nursery_name") || "My Nursery"
+}
+
 function buildWhatsAppText(sale: ReceiptSale): string {
+  const nurseryName = getNurseryName()
   const lines = [
-    `🌱 *GRACE HARVEST SEEDLINGS*`,
+    `🌱 *${nurseryName.toUpperCase()}*`,
     `📍 Nursery Management`,
     ``,
     `━━━━━━━━━━━━━━━━━━━━━`,
@@ -53,7 +59,7 @@ function buildWhatsAppText(sale: ReceiptSale): string {
     ``,
     `━━━━━━━━━━━━━━━━━━━━━`,
     `✅ *Thank you for your business!*`,
-    `_Grace Harvest Seedlings_`,
+    `_${nurseryName}_`,
   ]
   return lines.join("\n")
 }
@@ -85,7 +91,7 @@ function printReceipt(sale: ReceiptSale) {
   </style>
 </head>
 <body>
-  <div class="center bold" style="font-size:13pt; margin-bottom:2mm;">GRACE HARVEST SEEDLINGS</div>
+  <div class="center bold" style="font-size:13pt; margin-bottom:2mm;">${getNurseryName().toUpperCase()}</div>
   <div class="center small">Vegetable Nursery Management</div>
   <div class="divider"></div>
   ${sale.receipt_number ? `<div class="row"><span>Receipt #</span><span class="bold">${sale.receipt_number}</span></div>` : ""}
@@ -104,7 +110,7 @@ function printReceipt(sale: ReceiptSale) {
   <div class="row small"><span>Payment</span><span>${sale.payment_method || "Cash"}${sale.payment_reference ? ` (${sale.payment_reference})` : ""}</span></div>
   <div class="divider"></div>
   <div class="center small" style="margin-top:3mm;">Thank you for your business!</div>
-  <div class="center small">Grace Harvest Seedlings</div>
+  <div class="center small">${getNurseryName()}</div>
   <br/><br/>
 </body>
 </html>`

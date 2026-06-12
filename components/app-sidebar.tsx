@@ -28,6 +28,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar"
 import { Button } from "@/components/ui/button"
+import { useNursery } from "@/contexts/nursery-context"
 import { useAuth } from "@/contexts/auth-context"
 import { cn } from "@/lib/utils" // Import cn for className merging
 
@@ -52,6 +53,7 @@ interface AppSidebarProps {
 export function AppSidebar({ activeTab, setActiveTab }: AppSidebarProps) {
   const { signOut, user } = useAuth()
   const { setOpenMobile, isMobile, open } = useSidebar()
+  const { nurseryName } = useNursery()
 
   const handleTabSelect = (tabId: string) => {
     setActiveTab(tabId)
@@ -67,7 +69,7 @@ export function AppSidebar({ activeTab, setActiveTab }: AppSidebarProps) {
         {/* Updated Header Content */}
         <div className="flex items-center gap-2 px-2 py-1.5">
           <div className="flex flex-col gap-0.5 leading-none">
-            <span className="font-semibold text-sm" style={{color: '#22A45D'}}>Grace Harvest Seedlings</span>
+            <span className="font-semibold text-sm" style={{color: '#22A45D'}}>{nurseryName}</span>
             <span className="text-xs text-muted-foreground">Nursery Management</span>
           </div>
         </div>

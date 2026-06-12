@@ -70,9 +70,9 @@ export default function ResetPasswordPage() {
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
           <div className="w-16 h-16 bg-green-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
-            <span className="text-white font-black text-2xl">GH</span>
+            <span className="text-white font-black text-2xl">NM</span>
           </div>
-          <h1 className="text-2xl font-black text-green-700">Grace Harvest</h1>
+          <h1 className="text-2xl font-black text-green-700">Nursery Manager</h1>
           <p className="text-gray-500 text-sm mt-1">Set a new password</p>
         </div>
 

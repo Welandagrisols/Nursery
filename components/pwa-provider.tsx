@@ -142,7 +142,7 @@ export function PWAProvider({ children }: { children: React.ReactNode }) {
     let instructions = ""
     
     if (isChrome || isEdge) {
-      instructions = "Look for the install icon (⊞) in your address bar, or click the three dots menu → 'Install Grace Harvest Seedlings'"
+      instructions = "Look for the install icon (⊞) in your address bar, or click the three dots menu → 'Install Nursery Manager'"
     } else if (isSafari) {
       instructions = "Tap the Share button (□↗) and select 'Add to Home Screen'"
     } else {
@@ -150,7 +150,7 @@ export function PWAProvider({ children }: { children: React.ReactNode }) {
     }
 
     toast({
-      title: "Install Grace Harvest Seedlings",
+      title: "Install Nursery Manager",
       description: instructions,
       duration: 8000,
     })
@@ -166,7 +166,7 @@ export function PWAProvider({ children }: { children: React.ReactNode }) {
           <div className="flex items-center gap-3">
             <Download className="h-5 w-5" />
             <div>
-              <p className="font-medium">Install Grace Harvest Seedlings</p>
+              <p className="font-medium">Install Nursery Manager</p>
               <p className="text-sm opacity-90">
                 {deferredPrompt ? "Add to home screen for better experience" : "Available as app - click for instructions"}
               </p>
