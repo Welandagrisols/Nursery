@@ -2,16 +2,16 @@
 
 import { useState, useEffect } from "react"
 import { supabase, isDemoMode } from "@/lib/supabase"
+import { hash } from "bcryptjs"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
+import { Card, CardContent } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useToast } from "@/components/ui/use-toast"
 import { useRole } from "@/contexts/role-context"
-import { Users, Plus, Edit2, UserX, UserCheck, Key } from "lucide-react"
+import { Users, Plus, Edit2, UserX, UserCheck, Key, ShieldAlert, Eye, EyeOff } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 interface StaffMember {
@@ -19,14 +19,13 @@ interface StaffMember {
   name: string
   role: string
   is_active: boolean
-  created_at: string
   notes?: string
 }
 
 const ROLE_OPTIONS = [
-  { value: "manager", label: "Manager", desc: "Full access except owner settings" },
-  { value: "sales",   label: "Sales Staff", desc: "Sales, Customers, Dashboard only" },
-  { value: "worker",  label: "Farm Worker", desc: "Tasks and Nursery Layout only" },
+  { value: "manager", label: "Manager",     desc: "Full access except owner settings" },
+  { value: "sales",   label: "Sales Staff", desc: "Sales, customers & dashboard only" },
+  { value: "worker",  label: "Farm Worker", desc: "Tasks and nursery layout only" },
 ]
 
 const ROLE_COLOR: Record<string, string> = {
@@ -40,11 +39,13 @@ const ROLE_LABEL: Record<string, string> = {
   owner: "Owner", manager: "Manager", sales: "Sales Staff", worker: "Farm Worker",
 }
 
-const AVATAR_COLOR: Record<string, string> = {
+const AVATAR_BG: Record<string, string> = {
   owner: "bg-purple-600", manager: "bg-blue-600", sales: "bg-orange-500", worker: "bg-green-600",
 }
 
-const BLANK_FORM = { name: "", role: "worker", pin: "", notes: "" }
+const BLANK: { name: string; role: string; pin: string; notes: string } = {
+  name: "", role: "worker", pin: "", notes: "",
+}
 
 export function StaffManagement() {
   const { isOwnerOrManager, effectiveRole } = useRole()
@@ -53,42 +54,27 @@ export function StaffManagement() {
   const [loading, setLoading] = useState(true)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editing, setEditing] = useState<StaffMember | null>(null)
-  const [form, setForm] = useState(BLANK_FORM)
+  const [form, setForm] = useState(BLANK)
   const [saving, setSaving] = useState(false)
   const [showPin, setShowPin] = useState(false)
-  const [tableReady, setTableReady] = useState(true)
 
-  useEffect(() => { fetchStaff() }, [])
+  useEffect(() => { loadStaff() }, [])
 
-  const fetchStaff = async () => {
+  const loadStaff = async () => {
     setLoading(true)
-    if (isDemoMode) {
-      setStaff([])
-      setTableReady(false)
-      setLoading(false)
-      return
-    }
+    if (isDemoMode) { setLoading(false); return }
     try {
       const { data, error } = await (supabase.from("vnms_staff") as any)
-        .select("*")
+        .select("id, name, role, is_active, notes")
         .order("name")
-
-      if (error?.code === "42P01") {
-        setTableReady(false)
-      } else {
-        setStaff(data ?? [])
-        setTableReady(true)
-      }
-    } catch {
-      setTableReady(false)
-    } finally {
-      setLoading(false)
-    }
+      if (!error) setStaff(data ?? [])
+    } catch {}
+    setLoading(false)
   }
 
   const openAdd = () => {
     setEditing(null)
-    setForm(BLANK_FORM)
+    setForm(BLANK)
     setShowPin(false)
     setDialogOpen(true)
   }
@@ -101,11 +87,13 @@ export function StaffManagement() {
   }
 
   const handleSave = async () => {
-    if (!form.name.trim()) return toast({ title: "Name required", variant: "destructive" })
-    if (!editing && (!form.pin || form.pin.length !== 4 || !/^\d{4}$/.test(form.pin))) {
-      return toast({ title: "PIN must be exactly 4 digits", variant: "destructive" })
+    if (!form.name.trim()) {
+      return toast({ title: "Name required", variant: "destructive" })
     }
-    if (form.pin && (form.pin.length !== 4 || !/^\d{4}$/.test(form.pin))) {
+    if (!editing && (!form.pin || !/^\d{4}$/.test(form.pin))) {
+      return toast({ title: "PIN required — must be exactly 4 digits", variant: "destructive" })
+    }
+    if (form.pin && !/^\d{4}$/.test(form.pin)) {
       return toast({ title: "PIN must be exactly 4 digits", variant: "destructive" })
     }
 
@@ -118,28 +106,34 @@ export function StaffManagement() {
           notes: form.notes.trim(),
           updated_at: new Date().toISOString(),
         }
-        if (form.pin) payload.pin_hash = form.pin
-
+        // Only update PIN if a new one was provided — hash it properly
+        if (form.pin) {
+          payload.pin_hash = await hash(form.pin, 10)
+        }
         const { error } = await (supabase.from("vnms_staff") as any)
           .update(payload)
           .eq("id", editing.id)
         if (error) throw error
-        toast({ title: "Staff updated" })
+        toast({ title: "Staff updated", description: form.pin ? "PIN changed successfully." : undefined })
       } else {
+        // Hash the PIN before storing — never store plain text PINs
+        const pinHash = await hash(form.pin, 10)
         const { error } = await (supabase.from("vnms_staff") as any)
           .insert({
             name: form.name.trim(),
             role: form.role,
-            pin_hash: form.pin,
+            pin_hash: pinHash,
             notes: form.notes.trim(),
             is_active: true,
           })
         if (error) throw error
-        toast({ title: "Staff added", description: `${form.name} can now log in with their PIN.` })
+        toast({
+          title: `${form.name.trim()} added`,
+          description: `They can now log in with PIN ${form.pin}.`,
+        })
       }
-
       setDialogOpen(false)
-      fetchStaff()
+      loadStaff()
     } catch (e: any) {
       toast({ title: "Error", description: e.message, variant: "destructive" })
     } finally {
@@ -153,25 +147,32 @@ export function StaffManagement() {
       .eq("id", s.id)
     if (!error) {
       toast({ title: s.is_active ? `${s.name} deactivated` : `${s.name} reactivated` })
-      fetchStaff()
+      loadStaff()
     }
   }
 
+  // Access guard
   if (!isOwnerOrManager) {
     return (
       <div className="text-center py-12 text-gray-400">
-        <Users className="h-10 w-10 mx-auto mb-2 opacity-40" />
-        <p>Only managers can view staff accounts.</p>
+        <ShieldAlert className="h-10 w-10 mx-auto mb-2 opacity-40" />
+        <p>Only managers and the owner can manage staff accounts.</p>
       </div>
     )
   }
 
-  if (!tableReady) {
+  // Demo mode notice
+  if (isDemoMode) {
     return (
-      <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-800">
-        <p className="font-semibold mb-1">Staff table not set up yet</p>
-        <p>Run <code className="bg-amber-100 px-1 rounded">scripts/vnms-staff-migration.sql</code> and <code className="bg-amber-100 px-1 rounded">scripts/secure-pin-auth.sql</code> in Supabase to enable secure staff PIN authentication.</p>
-      </div>
+      <Card className="border-dashed border-amber-300 bg-amber-50">
+        <CardContent className="py-8 text-center space-y-2">
+          <Users className="h-10 w-10 mx-auto text-amber-400" />
+          <p className="font-semibold text-amber-800">Staff management requires a live database</p>
+          <p className="text-sm text-amber-700">
+            Connect your Supabase credentials to add and manage staff accounts.
+          </p>
+        </CardContent>
+      </Card>
     )
   }
 
@@ -179,25 +180,42 @@ export function StaffManagement() {
   const inactive = staff.filter(s => !s.is_active)
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h3 className="font-bold text-gray-800 text-lg">Staff Accounts</h3>
-          <p className="text-sm text-gray-500">{active.length} active · {inactive.length} inactive</p>
+          <p className="text-sm text-gray-500">
+            {loading ? "Loading..." : `${active.length} active${inactive.length ? ` · ${inactive.length} inactive` : ""}`}
+          </p>
         </div>
         <Button onClick={openAdd} className="bg-green-600 hover:bg-green-700 text-white gap-2">
           <Plus className="h-4 w-4" /> Add Staff
         </Button>
       </div>
 
+      {/* How it works info box */}
+      <div className="rounded-xl bg-blue-50 border border-blue-200 p-3 text-xs text-blue-700 flex gap-2">
+        <Key className="h-4 w-4 shrink-0 mt-0.5 text-blue-500" />
+        <p>
+          Each staff member logs in from the <strong>Farm Staff</strong> button on the login screen —
+          they select their name and enter their 4-digit PIN. No email or password needed.
+        </p>
+      </div>
+
+      {/* Staff list */}
       {loading ? (
-        <p className="text-center text-gray-400 py-8">Loading...</p>
+        <div className="space-y-2">
+          {[1,2,3].map(i => (
+            <div key={i} className="h-16 rounded-xl bg-gray-100 animate-pulse" />
+          ))}
+        </div>
       ) : staff.length === 0 ? (
         <Card className="border-dashed">
           <CardContent className="text-center py-10">
             <Users className="h-10 w-10 mx-auto mb-3 text-gray-300" />
             <p className="font-semibold text-gray-600 mb-1">No staff accounts yet</p>
-            <p className="text-sm text-gray-400 mb-4">Add staff so they can log in with a PIN</p>
+            <p className="text-sm text-gray-400 mb-4">Add your first staff member so they can log in with a PIN</p>
             <Button onClick={openAdd} variant="outline" className="gap-2">
               <Plus className="h-4 w-4" /> Add First Staff Member
             </Button>
@@ -205,74 +223,56 @@ export function StaffManagement() {
         </Card>
       ) : (
         <div className="space-y-2">
-          {staff.map(s => (
-            <Card key={s.id} className={cn("transition-all", !s.is_active && "opacity-60")}>
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <div className={cn(
-                    "w-11 h-11 rounded-full flex items-center justify-center text-white font-bold text-lg shrink-0",
-                    AVATAR_COLOR[s.role] ?? "bg-gray-500"
-                  )}>
-                    {s.name.charAt(0).toUpperCase()}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-bold text-gray-800">{s.name}</span>
-                      <span className={cn("text-xs px-2 py-0.5 rounded-full border font-medium", ROLE_COLOR[s.role])}>
-                        {ROLE_LABEL[s.role] ?? s.role}
-                      </span>
-                      {!s.is_active && (
-                        <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-500 border border-gray-200">
-                          Inactive
-                        </span>
-                      )}
-                    </div>
-                    {s.notes && <p className="text-xs text-gray-400 mt-0.5 truncate">{s.notes}</p>}
-                  </div>
-                  <div className="flex gap-1.5 shrink-0">
-                    <Button
-                      size="sm" variant="ghost"
-                      onClick={() => openEdit(s)}
-                      className="h-8 w-8 p-0 text-gray-500 hover:text-blue-600"
-                    >
-                      <Edit2 className="h-3.5 w-3.5" />
-                    </Button>
-                    {effectiveRole === "owner" && (
-                      <Button
-                        size="sm" variant="ghost"
-                        onClick={() => toggleActive(s)}
-                        className={cn("h-8 w-8 p-0", s.is_active ? "text-gray-400 hover:text-red-500" : "text-gray-400 hover:text-green-600")}
-                      >
-                        {s.is_active ? <UserX className="h-3.5 w-3.5" /> : <UserCheck className="h-3.5 w-3.5" />}
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+          {/* Active staff */}
+          {active.map(s => (
+            <StaffCard
+              key={s.id} s={s} effectiveRole={effectiveRole}
+              onEdit={() => openEdit(s)} onToggle={() => toggleActive(s)}
+            />
           ))}
+
+          {/* Inactive staff (collapsed section) */}
+          {inactive.length > 0 && (
+            <div className="pt-2">
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider px-1 mb-2">
+                Inactive ({inactive.length})
+              </p>
+              {inactive.map(s => (
+                <StaffCard
+                  key={s.id} s={s} effectiveRole={effectiveRole}
+                  onEdit={() => openEdit(s)} onToggle={() => toggleActive(s)}
+                />
+              ))}
+            </div>
+          )}
         </div>
       )}
 
       {/* Add / Edit dialog */}
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+      <Dialog open={dialogOpen} onOpenChange={open => { if (!saving) setDialogOpen(open) }}>
         <DialogContent className="sm:max-w-md mx-4">
           <DialogHeader>
-            <DialogTitle>{editing ? "Edit Staff" : "Add New Staff"}</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              {editing ? <><Edit2 className="h-4 w-4" /> Edit Staff Member</> : <><Plus className="h-4 w-4" /> Add Staff Member</>}
+            </DialogTitle>
           </DialogHeader>
-          <div className="space-y-4 pt-2">
+
+          <div className="space-y-4 pt-1">
+            {/* Name */}
             <div className="space-y-1.5">
-              <Label>Full Name</Label>
+              <Label>Full Name *</Label>
               <Input
                 placeholder="e.g. John Kamau"
                 value={form.name}
                 onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+                disabled={saving}
               />
             </div>
 
+            {/* Role */}
             <div className="space-y-1.5">
-              <Label>Role</Label>
-              <Select value={form.role} onValueChange={v => setForm(f => ({ ...f, role: v }))}>
+              <Label>Role *</Label>
+              <Select value={form.role} onValueChange={v => setForm(f => ({ ...f, role: v }))} disabled={saving}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -289,45 +289,62 @@ export function StaffManagement() {
               </Select>
             </div>
 
+            {/* PIN */}
             <div className="space-y-1.5">
-              <Label className="flex items-center gap-2">
+              <Label className="flex items-center gap-1.5">
                 <Key className="h-3.5 w-3.5" />
-                {editing ? "New PIN (leave blank to keep current)" : "4-Digit PIN"}
+                {editing ? "New PIN (leave blank to keep current)" : "4-Digit PIN *"}
               </Label>
               <div className="relative">
                 <Input
                   type={showPin ? "text" : "password"}
-                  placeholder="e.g. 4821"
+                  inputMode="numeric"
+                  placeholder={editing ? "Enter new PIN to change it" : "e.g. 4821"}
                   maxLength={4}
                   value={form.pin}
                   onChange={e => setForm(f => ({ ...f, pin: e.target.value.replace(/\D/g, "").slice(0, 4) }))}
-                  className="font-mono text-lg tracking-[0.5em] pr-20"
+                  className="font-mono text-xl tracking-[0.6em] pr-16 text-center"
+                  disabled={saving}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPin(v => !v)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400 hover:text-gray-600"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  tabIndex={-1}
                 >
-                  {showPin ? "Hide" : "Show"}
+                  {showPin ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
-              <p className="text-xs text-gray-400">Staff will enter this on a big number pad to log in.</p>
+              <p className="text-xs text-gray-400">
+                Staff enter this PIN on a number pad to clock in. Keep it private.
+              </p>
             </div>
 
+            {/* Notes */}
             <div className="space-y-1.5">
               <Label>Notes (optional)</Label>
               <Input
                 placeholder="e.g. Section A supervisor"
                 value={form.notes}
                 onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
+                disabled={saving}
               />
             </div>
 
-            <div className="flex gap-2 pt-2">
-              <Button variant="outline" className="flex-1" onClick={() => setDialogOpen(false)} disabled={saving}>
+            {/* Actions */}
+            <div className="flex gap-2 pt-1">
+              <Button
+                variant="outline" className="flex-1"
+                onClick={() => setDialogOpen(false)}
+                disabled={saving}
+              >
                 Cancel
               </Button>
-              <Button className="flex-1 bg-green-600 hover:bg-green-700 text-white" onClick={handleSave} disabled={saving}>
+              <Button
+                className="flex-1 bg-green-600 hover:bg-green-700 text-white font-semibold"
+                onClick={handleSave}
+                disabled={saving}
+              >
                 {saving ? "Saving..." : editing ? "Save Changes" : "Add Staff"}
               </Button>
             </div>
@@ -335,5 +352,75 @@ export function StaffManagement() {
         </DialogContent>
       </Dialog>
     </div>
+  )
+}
+
+function StaffCard({
+  s, effectiveRole, onEdit, onToggle,
+}: {
+  s: StaffMember
+  effectiveRole: string
+  onEdit: () => void
+  onToggle: () => void
+}) {
+  return (
+    <Card className={cn("transition-all", !s.is_active && "opacity-55")}>
+      <CardContent className="p-3">
+        <div className="flex items-center gap-3">
+          <div className={cn(
+            "w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-base shrink-0",
+            AVATAR_BG[s.role] ?? "bg-gray-500"
+          )}>
+            {s.name.charAt(0).toUpperCase()}
+          </div>
+
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="font-semibold text-gray-800">{s.name}</span>
+              <span className={cn(
+                "text-xs px-2 py-0.5 rounded-full border font-medium",
+                ROLE_COLOR[s.role] ?? "bg-gray-100 text-gray-600 border-gray-200"
+              )}>
+                {ROLE_LABEL[s.role] ?? s.role}
+              </span>
+              {!s.is_active && (
+                <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-400 border border-gray-200">
+                  Inactive
+                </span>
+              )}
+            </div>
+            {s.notes && (
+              <p className="text-xs text-gray-400 mt-0.5 truncate">{s.notes}</p>
+            )}
+          </div>
+
+          <div className="flex gap-1 shrink-0">
+            <Button
+              size="sm" variant="ghost"
+              onClick={onEdit}
+              className="h-8 w-8 p-0 text-gray-400 hover:text-blue-600 hover:bg-blue-50"
+              title="Edit"
+            >
+              <Edit2 className="h-3.5 w-3.5" />
+            </Button>
+            {effectiveRole === "owner" && (
+              <Button
+                size="sm" variant="ghost"
+                onClick={onToggle}
+                className={cn(
+                  "h-8 w-8 p-0",
+                  s.is_active
+                    ? "text-gray-400 hover:text-red-500 hover:bg-red-50"
+                    : "text-gray-400 hover:text-green-600 hover:bg-green-50"
+                )}
+                title={s.is_active ? "Deactivate" : "Reactivate"}
+              >
+                {s.is_active ? <UserX className="h-3.5 w-3.5" /> : <UserCheck className="h-3.5 w-3.5" />}
+              </Button>
+            )}
+          </div>
+        </div>
+      </CardContent>
+    </Card>
   )
 }
