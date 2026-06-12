@@ -42,6 +42,14 @@ function getNurseryLogo() {
   if (typeof window === "undefined") return ""
   return localStorage.getItem("vnms_nursery_logo") || ""
 }
+function getNurseryPhone() {
+  if (typeof window === "undefined") return ""
+  return localStorage.getItem("vnms_nursery_phone") || ""
+}
+function getNurseryTagline() {
+  if (typeof window === "undefined") return ""
+  return localStorage.getItem("vnms_nursery_tagline") || ""
+}
 
 function buildWhatsAppText(sale: ReceiptSale): string {
   const nurseryName = getNurseryName()
@@ -64,8 +72,10 @@ function buildWhatsAppText(sale: ReceiptSale): string {
     ``,
     `━━━━━━━━━━━━━━━━━━━━━`,
     `✅ *Thank you for your business!*`,
+    getNurseryPhone() ? `📞 ${getNurseryPhone()}` : ``,
+    getNurseryTagline() ? `_${getNurseryTagline()}_` : ``,
     `_${nurseryName}_`,
-  ]
+  ].filter(l => l !== "")
   return lines.join("\n")
 }
 
@@ -117,8 +127,10 @@ function printReceipt(sale: ReceiptSale) {
   <div class="total-row"><span>TOTAL</span><span>Ksh ${sale.total_amount.toLocaleString()}</span></div>
   <div class="row small"><span>Payment</span><span>${sale.payment_method || "Cash"}${sale.payment_reference ? ` (${sale.payment_reference})` : ""}</span></div>
   <div class="divider"></div>
-  <div class="center small" style="margin-top:3mm;">Thank you for your business!</div>
-  <div class="center small">${getNurseryName()}</div>
+  ${getNurseryPhone() ? `<div class="center small">📞 ${getNurseryPhone()}</div>` : ""}
+  <div class="center small" style="margin-top:2mm;">Thank you for your business!</div>
+  ${getNurseryTagline() ? `<div class="center small" style="font-style:italic; margin-top:1mm;">${getNurseryTagline()}</div>` : ""}
+  <div class="center small" style="margin-top:1mm;">${getNurseryName()}</div>
   <br/><br/>
 </body>
 </html>`

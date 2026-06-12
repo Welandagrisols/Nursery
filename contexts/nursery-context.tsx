@@ -6,9 +6,17 @@ interface NurseryContextValue {
   nurseryName: string
   currency: string
   location: string
+  phone: string
+  tagline: string
   initials: string
-  logoUrl: string       // base64 data URL or ""
-  saveProfile: (name: string, currency: string, location: string) => void
+  logoUrl: string
+  saveProfile: (fields: {
+    name: string
+    currency: string
+    location: string
+    phone: string
+    tagline: string
+  }) => void
   saveLogo: (dataUrl: string) => void
   removeLogo: () => void
 }
@@ -17,6 +25,8 @@ const NurseryContext = createContext<NurseryContextValue>({
   nurseryName: "My Nursery",
   currency: "Ksh",
   location: "",
+  phone: "",
+  tagline: "",
   initials: "MN",
   logoUrl: "",
   saveProfile: () => {},
@@ -39,27 +49,34 @@ export function NurseryProvider({ children }: { children: ReactNode }) {
   const [nurseryName, setNurseryName] = useState("My Nursery")
   const [currency, setCurrency] = useState("Ksh")
   const [location, setLocation] = useState("")
+  const [phone, setPhone] = useState("")
+  const [tagline, setTagline] = useState("")
   const [logoUrl, setLogoUrl] = useState("")
 
   useEffect(() => {
     if (typeof window === "undefined") return
-    const saved = localStorage.getItem("vnms_nursery_name")
-    if (saved) setNurseryName(saved)
-    const cur = localStorage.getItem("vnms_nursery_currency")
-    if (cur) setCurrency(cur)
-    const loc = localStorage.getItem("vnms_nursery_location")
-    if (loc) setLocation(loc)
-    const logo = localStorage.getItem("vnms_nursery_logo")
-    if (logo) setLogoUrl(logo)
+    const v = (key: string) => localStorage.getItem(key) || ""
+    const n = v("vnms_nursery_name"); if (n) setNurseryName(n)
+    const c = v("vnms_nursery_currency"); if (c) setCurrency(c)
+    const l = v("vnms_nursery_location"); if (l) setLocation(l)
+    const p = v("vnms_nursery_phone"); if (p) setPhone(p)
+    const t = v("vnms_nursery_tagline"); if (t) setTagline(t)
+    const logo = v("vnms_nursery_logo"); if (logo) setLogoUrl(logo)
   }, [])
 
-  const saveProfile = useCallback((name: string, cur: string, loc: string) => {
+  const saveProfile = useCallback(({ name, currency: cur, location: loc, phone: ph, tagline: tl }: {
+    name: string; currency: string; location: string; phone: string; tagline: string
+  }) => {
     localStorage.setItem("vnms_nursery_name", name)
     localStorage.setItem("vnms_nursery_currency", cur)
     localStorage.setItem("vnms_nursery_location", loc)
+    localStorage.setItem("vnms_nursery_phone", ph)
+    localStorage.setItem("vnms_nursery_tagline", tl)
     setNurseryName(name)
     setCurrency(cur)
     setLocation(loc)
+    setPhone(ph)
+    setTagline(tl)
   }, [])
 
   const saveLogo = useCallback((dataUrl: string) => {
@@ -74,28 +91,18 @@ export function NurseryProvider({ children }: { children: ReactNode }) {
 
   return (
     <NurseryContext.Provider value={{
-      nurseryName,
-      currency,
-      location,
+      nurseryName, currency, location, phone, tagline,
       initials: getInitials(nurseryName),
       logoUrl,
-      saveProfile,
-      saveLogo,
-      removeLogo,
+      saveProfile, saveLogo, removeLogo,
     }}>
       {children}
     </NurseryContext.Provider>
   )
 }
 
-/** Read logo from localStorage — for use inside non-component functions (print/WhatsApp) */
-export function getNurseryLogoFromStorage(): string {
+/** Read a nursery field from localStorage — for standalone print/WhatsApp functions */
+export function getNurseryField(key: "vnms_nursery_name" | "vnms_nursery_logo" | "vnms_nursery_phone" | "vnms_nursery_tagline"): string {
   if (typeof window === "undefined") return ""
-  return localStorage.getItem("vnms_nursery_logo") || ""
-}
-
-/** Read nursery name from localStorage — for use inside non-component functions */
-export function getNurseryNameFromStorage(): string {
-  if (typeof window === "undefined") return "My Nursery"
-  return localStorage.getItem("vnms_nursery_name") || "My Nursery"
+  return localStorage.getItem(key) || ""
 }

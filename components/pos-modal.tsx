@@ -34,7 +34,7 @@ interface Props {
 
 export function POSModal({ open, onClose, onSaleComplete }: Props) {
   const { user } = useAuth()
-  const { nurseryName, logoUrl } = useNursery()
+  const { nurseryName, logoUrl, phone: nurseryPhone, tagline: nurseryTagline } = useNursery()
   const { toast } = useToast()
   const receiptRef = useRef<HTMLDivElement>(null)
 
@@ -243,8 +243,10 @@ ${selectedBatch?.batch_code ? `<div class="small">Batch: ${selectedBatch.batch_c
 <div class="total-row"><span>TOTAL</span><span>Ksh ${totalAmount.toLocaleString()}</span></div>
 <div class="row small"><span>Payment</span><span>${paymentMethod}${mpesaRef ? ` (${mpesaRef})` : ""}</span></div>
 <div class="divider"></div>
-<div class="center small" style="margin-top:3mm;">Thank you for your business!</div>
-<div class="center small">${nurseryName}</div>
+${nurseryPhone ? `<div class="center small">📞 ${nurseryPhone}</div>` : ""}
+<div class="center small" style="margin-top:2mm;">Thank you for your business!</div>
+${nurseryTagline ? `<div class="center small" style="font-style:italic; margin-top:1mm;">${nurseryTagline}</div>` : ""}
+<div class="center small" style="margin-top:1mm;">${nurseryName}</div>
 <br/><br/>
 </body></html>`
     const win = window.open("", "_blank", "width=300,height=600")
@@ -277,8 +279,10 @@ ${selectedBatch?.batch_code ? `<div class="small">Batch: ${selectedBatch.batch_c
       ``,
       `━━━━━━━━━━━━━━━━━━━━━`,
       `✅ *Thank you for your business!*`,
+      nurseryPhone ? `📞 ${nurseryPhone}` : ``,
+      nurseryTagline ? `_${nurseryTagline}_` : ``,
       `_${nurseryName}_`,
-    ].filter(l => l !== undefined).join("\n")
+    ].filter(l => l !== undefined && l !== "").join("\n")
     const url = phone
       ? `https://wa.me/${phone}?text=${encodeURIComponent(lines)}`
       : `https://wa.me/?text=${encodeURIComponent(lines)}`

@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { useToast } from "@/components/ui/use-toast"
-import { Settings, DollarSign, Lock, Plus, Edit2, Save, X, History, Users, Building2, MapPin, Coins, Upload, Trash2, ImageIcon } from "lucide-react"
+import { Settings, DollarSign, Lock, Plus, Edit2, Save, X, History, Users, Building2, MapPin, Coins, Upload, Trash2, ImageIcon, Phone, Tag } from "lucide-react"
 import { StaffManagement } from "@/components/staff-management"
 import { useNursery } from "@/contexts/nursery-context"
 import { useRef } from "react"
@@ -283,10 +283,12 @@ async function compressImage(file: File, maxPx = 240, quality = 0.85): Promise<s
 
 function NursuryProfileCard() {
   const { toast } = useToast()
-  const { nurseryName, currency: ctxCurrency, location: ctxLocation, logoUrl, saveProfile, saveLogo, removeLogo } = useNursery()
+  const { nurseryName, currency: ctxCurrency, location: ctxLocation, phone: ctxPhone, tagline: ctxTagline, logoUrl, saveProfile, saveLogo, removeLogo } = useNursery()
   const [name, setName] = useState(nurseryName)
   const [currency, setCurrency] = useState(ctxCurrency)
   const [location, setLocation] = useState(ctxLocation)
+  const [phone, setPhone] = useState(ctxPhone)
+  const [tagline, setTagline] = useState(ctxTagline)
   const [saved, setSaved] = useState(false)
   const [uploadingLogo, setUploadingLogo] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
@@ -295,12 +297,20 @@ function NursuryProfileCard() {
     setName(nurseryName)
     setCurrency(ctxCurrency)
     setLocation(ctxLocation)
-  }, [nurseryName, ctxCurrency, ctxLocation])
+    setPhone(ctxPhone)
+    setTagline(ctxTagline)
+  }, [nurseryName, ctxCurrency, ctxLocation, ctxPhone, ctxTagline])
 
   const save = () => {
-    saveProfile(name.trim() || "My Nursery", currency.trim() || "Ksh", location.trim())
+    saveProfile({
+      name: name.trim() || "My Nursery",
+      currency: currency.trim() || "Ksh",
+      location: location.trim(),
+      phone: phone.trim(),
+      tagline: tagline.trim(),
+    })
     setSaved(true)
-    toast({ title: "Profile saved", description: "Your nursery name now appears everywhere in the app." })
+    toast({ title: "Profile saved", description: "Contact details now print on every receipt." })
     setTimeout(() => setSaved(false), 2000)
   }
 
@@ -414,6 +424,36 @@ function NursuryProfileCard() {
               placeholder="e.g. Nairobi, Kenya"
             />
           </div>
+
+          {/* Contact & Tagline */}
+          <div className="border-t pt-3 space-y-4">
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Receipt Footer</p>
+            <div className="space-y-1.5">
+              <Label className="flex items-center gap-1.5">
+                <Phone className="h-3.5 w-3.5" /> Phone / WhatsApp Number
+              </Label>
+              <Input
+                value={phone}
+                onChange={e => setPhone(e.target.value)}
+                placeholder="e.g. +254 712 345 678"
+                inputMode="tel"
+              />
+              <p className="text-xs text-gray-400">Printed below the total on every receipt.</p>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="flex items-center gap-1.5">
+                <Tag className="h-3.5 w-3.5" /> Tagline / Slogan
+              </Label>
+              <Input
+                value={tagline}
+                onChange={e => setTagline(e.target.value)}
+                placeholder="e.g. Quality Seedlings, Healthy Harvests"
+                maxLength={80}
+              />
+              <p className="text-xs text-gray-400">Short slogan shown at the bottom of receipts.</p>
+            </div>
+          </div>
+
           <Button onClick={save} className="bg-green-600 hover:bg-green-700 text-white w-full">
             {saved ? "✓ Saved" : "Save Profile"}
           </Button>
