@@ -12,6 +12,7 @@ interface AuthContextType {
   signUp: (email: string, password: string) => Promise<{ data: any, error: any }>
   resetPassword: (email: string) => Promise<{ error: any }>
   updatePassword: (newPassword: string) => Promise<{ error: any }>
+  resendConfirmation: (email: string) => Promise<{ error: any }>
   signOut: () => Promise<void>
   isAuthenticated: boolean
 }
@@ -159,6 +160,18 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   }
 
+  const resendConfirmation = async (email: string) => {
+    try {
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email,
+      })
+      return { error }
+    } catch (error) {
+      return { error }
+    }
+  }
+
   const updatePassword = async (newPassword: string) => {
     try {
       const { error } = await supabase.auth.updateUser({ password: newPassword })
@@ -184,6 +197,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     signUp,
     resetPassword,
     updatePassword,
+    resendConfirmation,
     signOut,
     isAuthenticated: !!user,
   }
