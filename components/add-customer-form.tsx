@@ -33,6 +33,7 @@ export function AddCustomerForm({ onSuccess }: AddCustomerFormProps) {
     name: "",
     contact: "",
     email: "",
+    credit_limit: "",
   })
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -76,6 +77,7 @@ export function AddCustomerForm({ onSuccess }: AddCustomerFormProps) {
         name: formData.name,
         contact: formData.contact,
         email: formData.email || null,
+        credit_limit: formData.credit_limit ? Number(formData.credit_limit) : 0,
       } as any).select().single()
 
       if (error) {
@@ -95,6 +97,7 @@ export function AddCustomerForm({ onSuccess }: AddCustomerFormProps) {
         name: "",
         contact: "",
         email: "",
+        credit_limit: "",
       })
 
       onSuccess()
@@ -128,6 +131,20 @@ export function AddCustomerForm({ onSuccess }: AddCustomerFormProps) {
           <div className="space-y-2">
             <Label htmlFor="email">Email Address</Label>
             <Input id="email" name="email" type="email" value={formData.email} onChange={handleChange} />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="credit_limit">Credit Limit (Ksh)</Label>
+            <Input
+              id="credit_limit"
+              name="credit_limit"
+              type="number"
+              min="0"
+              placeholder="0"
+              value={formData.credit_limit}
+              onChange={handleChange}
+            />
+            <p className="text-xs text-muted-foreground">Max outstanding credit sales allowed for this customer. Leave 0 to disallow credit sales.</p>
           </div>
         </form>
       </div>

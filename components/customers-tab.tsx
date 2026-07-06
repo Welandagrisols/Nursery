@@ -25,6 +25,7 @@ interface Customer {
   contact: string
   email: string | null
   created_at: string
+  credit_limit?: number
 }
 
 interface Plant {
@@ -348,6 +349,19 @@ export function CustomersTab() {
     }
   }
 
+  const handleUpdateCreditLimit = async (customerId: string, newLimit: number) => {
+    if (isDemoMode || !tableExists) return
+    const { error } = await (supabase.from("vnms_customers") as any)
+      .update({ credit_limit: newLimit })
+      .eq("id", customerId)
+    if (error) {
+      toast({ title: "Error updating credit limit", description: error.message, variant: "destructive" })
+      return
+    }
+    setCustomers(prev => prev.map(c => c.id === customerId ? { ...c, credit_limit: newLimit } : c))
+    toast({ title: "Credit limit updated", description: `Ksh ${newLimit.toLocaleString()} allowed for this customer.` })
+  }
+
   const handleDeleteCustomer = async (customerId: string, customerName: string) => {
     if (isDemoMode || !tableExists) {
       toast({
@@ -550,6 +564,20 @@ export function CustomersTab() {
                               <span className="truncate">{customer.email}</span>
                             </div>
                           )}
+                          <div className="flex items-center gap-2 text-sm">
+                            <span className="text-muted-foreground text-xs">Credit limit:</span>
+                            <Input
+                              type="number"
+                              min="0"
+                              defaultValue={customer.credit_limit ?? 0}
+                              className="h-7 w-28 text-xs"
+                              disabled={isDemoMode || !tableExists}
+                              onBlur={(e) => {
+                                const val = Number(e.target.value) || 0
+                                if (val !== (customer.credit_limit ?? 0)) handleUpdateCreditLimit(customer.id, val)
+                              }}
+                            />
+                          </div>
                         </div>
 
                         <div className="flex gap-2 pt-2">
@@ -594,19 +622,20 @@ export function CustomersTab() {
                   <TableHead>Contact</TableHead>
                   <TableHead>Email</TableHead>
                   <TableHead>Added On</TableHead>
+                  <TableHead>Credit Limit</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {loading ? (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center py-8">
+                    <TableCell colSpan={6} className="text-center py-8">
                       Loading customers...
                     </TableCell>
                   </TableRow>
                 ) : filteredCustomers.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center py-8">
+                    <TableCell colSpan={6} className="text-center py-8">
                       No customers found
                     </TableCell>
                   </TableRow>
@@ -635,6 +664,19 @@ export function CustomersTab() {
                           <Calendar className="h-4 w-4 text-muted-foreground" />
                           {new Date(customer.created_at).toLocaleDateString()}
                         </div>
+                      </TableCell>
+                      <TableCell>
+                        <Input
+                          type="number"
+                          min="0"
+                          defaultValue={customer.credit_limit ?? 0}
+                          className="h-8 w-28 text-xs"
+                          disabled={isDemoMode || !tableExists}
+                          onBlur={(e) => {
+                            const val = Number(e.target.value) || 0
+                            if (val !== (customer.credit_limit ?? 0)) handleUpdateCreditLimit(customer.id, val)
+                          }}
+                        />
                       </TableCell>
                       <TableCell>
                         <div className="flex gap-2">

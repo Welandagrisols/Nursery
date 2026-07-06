@@ -18,7 +18,7 @@ interface Batch {
   id: string; plant_name: string; batch_code?: string; lifecycle_status?: string
   available_stock?: number; quantity: number; price: number; crop_type?: string
 }
-interface Customer { id: string; name: string; phone?: string; contact?: string }
+interface Customer { id: string; name: string; phone?: string; contact?: string; credit_limit?: number }
 interface PriceTier { customer_type: string; min_quantity: number; max_quantity: number; price_per_seedling: number }
 
 function generateReceiptNumber() {
@@ -55,6 +55,8 @@ export function POSModal({ open, onClose, onSaleComplete }: Props) {
   const [mpesaRef, setMpesaRef] = useState("")
   const [managerPin, setManagerPin] = useState("")
   const [notes, setNotes] = useState("")
+  const [outstandingBalance, setOutstandingBalance] = useState<number | null>(null)
+  const [checkingCredit, setCheckingCredit] = useState(false)
 
   // Computed
   const selectedBatch = batches.find(b => b.id === batchId)
@@ -94,8 +96,36 @@ export function POSModal({ open, onClose, onSaleComplete }: Props) {
       setMpesaRef("")
       setManagerPin("")
       setNotes("")
+      setOutstandingBalance(null)
     }
   }, [open])
+
+  useEffect(() => {
+    async function loadOutstanding() {
+      if (paymentMethod !== "Credit" || customerId === "walk-in" || isDemoMode) {
+        setOutstandingBalance(null)
+        return
+      }
+      setCheckingCredit(true)
+      const { data } = await (supabase.from("vnms_sales") as any)
+        .select("total_amount, payment_method, payment_reference")
+        .eq("customer_id", customerId)
+        .or("payment_method.eq.Credit,payment_method.like.Credit%")
+      const balance = (data || []).reduce((sum: number, s: any) => {
+        const method = (s.payment_method || "").toLowerCase()
+        if (method.includes("paid") && !method.includes("partial")) return sum
+        const paid = s.payment_reference?.startsWith("partial:") ? Number(s.payment_reference.split(":")[1]) || 0 : 0
+        return sum + Math.max(0, (s.total_amount || 0) - paid)
+      }, 0)
+      setOutstandingBalance(balance)
+      setCheckingCredit(false)
+    }
+    loadOutstanding()
+  }, [paymentMethod, customerId])
+
+  const creditLimit = selectedCustomer?.credit_limit ?? 0
+  const projectedBalance = (outstandingBalance ?? 0) + totalAmount
+  const overCreditLimit = paymentMethod === "Credit" && customerId !== "walk-in" && outstandingBalance !== null && projectedBalance > creditLimit
 
   async function fetchData() {
     if (isDemoMode) {
@@ -119,7 +149,7 @@ export function POSModal({ open, onClose, onSaleComplete }: Props) {
     const [batchRes, custRes, priceRes] = await Promise.all([
       supabase.from("vnms_batches").select("id, plant_name, batch_code, lifecycle_status, quantity, available_stock, price, crop_type")
         .in("lifecycle_status", ["selling", "ready", "Ready", "Selling"]).gt("quantity", 0),
-      supabase.from("vnms_customers").select("id, name, phone, contact").order("name"),
+      supabase.from("vnms_customers").select("id, name, phone, contact, credit_limit").order("name"),
       supabase.from("vnms_prices").select("*").order("min_quantity"),
     ])
     setBatches((batchRes.data as Batch[]) || [])
@@ -139,6 +169,14 @@ export function POSModal({ open, onClose, onSaleComplete }: Props) {
     }
     if (paymentMethod === "Credit" && customerId === "walk-in") {
       toast({ title: "Customer required", description: "Credit sales must be linked to a customer.", variant: "destructive" }); return
+    }
+    if (paymentMethod === "Credit" && overCreditLimit) {
+      toast({
+        title: "Credit limit exceeded",
+        description: `${selectedCustomer?.name} has Ksh ${(outstandingBalance ?? 0).toLocaleString()} outstanding. This sale would bring it to Ksh ${projectedBalance.toLocaleString()}, over their Ksh ${creditLimit.toLocaleString()} limit.`,
+        variant: "destructive",
+      })
+      return
     }
 
     setConfirming(true)
@@ -395,6 +433,34 @@ ${nurseryTagline ? `<div class="center small" style="font-style:italic; margin-t
               </div>
             )}
 
+            {paymentMethod === "Credit" && customerId !== "walk-in" && (
+              <div className={`p-3 rounded-lg text-sm space-y-1 border ${overCreditLimit ? "bg-red-50 border-red-200" : "bg-blue-50 border-blue-200"}`}>
+                {checkingCredit ? (
+                  <p className="text-muted-foreground">Checking credit limit…</p>
+                ) : (
+                  <>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Current outstanding</span>
+                      <span className="font-semibold">Ksh {(outstandingBalance ?? 0).toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Credit limit</span>
+                      <span className="font-semibold">Ksh {creditLimit.toLocaleString()}</span>
+                    </div>
+                    <div className={`flex justify-between font-bold pt-1 border-t ${overCreditLimit ? "border-red-200 text-red-700" : "border-blue-200"}`}>
+                      <span>After this sale</span>
+                      <span>Ksh {projectedBalance.toLocaleString()}</span>
+                    </div>
+                    {overCreditLimit && (
+                      <p className="text-red-700 text-xs pt-1">
+                        ⚠️ This exceeds {selectedCustomer?.name}'s credit limit by Ksh {(projectedBalance - creditLimit).toLocaleString()}.
+                      </p>
+                    )}
+                  </>
+                )}
+              </div>
+            )}
+
             <div className="space-y-1">
               <Label>Notes (optional)</Label>
               <Textarea placeholder="Any remarks about this sale…" value={notes} onChange={e => setNotes(e.target.value)} rows={2} />
@@ -404,10 +470,10 @@ ${nurseryTagline ? `<div class="center small" style="font-style:italic; margin-t
               <Button variant="outline" onClick={onClose} className="flex-1">Cancel</Button>
               <Button
                 onClick={handleConfirmSale}
-                disabled={confirming || !batchId || qty <= 0 || stockAfter < 0}
+                disabled={confirming || !batchId || qty <= 0 || stockAfter < 0 || overCreditLimit}
                 className="flex-1 bg-green-600 hover:bg-green-700 text-white"
               >
-                {confirming ? "Recording…" : `Confirm Sale — Ksh ${totalAmount.toLocaleString()}`}
+                {confirming ? "Recording…" : overCreditLimit ? "Over Credit Limit" : `Confirm Sale — Ksh ${totalAmount.toLocaleString()}`}
               </Button>
             </div>
           </div>
@@ -416,7 +482,7 @@ ${nurseryTagline ? `<div class="center small" style="font-style:italic; margin-t
           <div className="space-y-4">
             <div ref={receiptRef} className="border rounded-xl p-4 font-mono text-sm space-y-2 bg-white">
               <div className="text-center font-bold text-base border-b pb-2">
-                GRACE HARVEST SEEDLINGS<br />
+                {nurseryName.toUpperCase()}<br />
                 <span className="text-xs font-normal">Nursery Management</span>
               </div>
               <div className="flex justify-between text-xs text-muted-foreground">
