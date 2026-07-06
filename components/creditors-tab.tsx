@@ -10,8 +10,9 @@ import { Label } from "@/components/ui/label"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useToast } from "@/components/ui/use-toast"
-import { CreditCard, CheckCircle, AlertTriangle, TrendingDown, User, Phone } from "lucide-react"
+import { CreditCard, CheckCircle, AlertTriangle, TrendingDown, User, Phone, MessageCircle } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { useNursery } from "@/contexts/nursery-context"
 
 interface CreditSale {
   id: string
@@ -38,6 +39,7 @@ interface PaymentDialog {
 
 export function CreditorsTab() {
   const { toast } = useToast()
+  const { nurseryName, phone: nurseryPhone } = useNursery()
   const [sales, setSales] = useState<CreditSale[]>([])
   const [loading, setLoading] = useState(true)
   const [tableReady, setTableReady] = useState(true)
@@ -82,6 +84,27 @@ export function CreditorsTab() {
   const openPayDialog = (sale: CreditSale) => {
     const remaining = getRemainingBalance(sale)
     setPayDialog({ sale, amount: String(remaining), method: "Cash" })
+  }
+
+  const sendReminder = (sale: CreditSale) => {
+    const contact = sale.customer?.contact?.replace(/\D/g, "")
+    if (!contact) {
+      toast({ title: "No phone number", description: "This customer has no phone number on file.", variant: "destructive" })
+      return
+    }
+    const remaining = getRemainingBalance(sale)
+    const dateStr = new Date(sale.sale_date).toLocaleDateString("en-KE", { day: "numeric", month: "short", year: "numeric" })
+    const lines = [
+      `Hi ${sale.customer?.name ?? "there"}, this is a friendly reminder from *${nurseryName}*.`,
+      ``,
+      `🌿 ${sale.plant_name || sale.batch_code || "Seedlings"} — ${sale.quantity.toLocaleString()} units`,
+      `📅 Purchased: ${dateStr}`,
+      isPartial(sale) ? `💰 Balance remaining: *Ksh ${remaining.toLocaleString()}* (of Ksh ${sale.total_amount.toLocaleString()})` : `💰 Amount due: *Ksh ${remaining.toLocaleString()}*`,
+      ``,
+      `Kindly clear this balance at your earliest convenience. Thank you for your business!`,
+      nurseryPhone ? `📞 ${nurseryPhone}` : ``,
+    ].filter(l => l !== "").join("\n")
+    window.open(`https://wa.me/${contact}?text=${encodeURIComponent(lines)}`, "_blank")
   }
 
   const markAsPaid = async () => {
@@ -278,13 +301,25 @@ export function CreditorsTab() {
                           <CheckCircle className="h-3 w-3 mr-1" /> Paid
                         </Badge>
                       ) : (
-                        <Button
-                          size="sm"
-                          onClick={() => openPayDialog(sale)}
-                          className="bg-green-600 hover:bg-green-700 text-white text-xs px-3 h-7"
-                        >
-                          {isPartial(sale) ? "Collect More" : "Record Payment"}
-                        </Button>
+                        <div className="flex flex-col gap-1.5 items-end">
+                          <Button
+                            size="sm"
+                            onClick={() => openPayDialog(sale)}
+                            className="bg-green-600 hover:bg-green-700 text-white text-xs px-3 h-7"
+                          >
+                            {isPartial(sale) ? "Collect More" : "Record Payment"}
+                          </Button>
+                          {sale.customer?.contact && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => sendReminder(sale)}
+                              className="text-xs px-3 h-7 border-green-300 text-green-700 hover:bg-green-50"
+                            >
+                              <MessageCircle className="h-3 w-3 mr-1" /> Remind
+                            </Button>
+                          )}
+                        </div>
                       )}
                     </div>
                   </div>
