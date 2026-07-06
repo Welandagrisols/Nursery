@@ -12,7 +12,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useToast } from "@/components/ui/use-toast"
-import { Printer, MessageCircle, CheckCircle2, ShoppingCart, X, Lock } from "lucide-react"
+import { Printer, MessageCircle, CheckCircle2, ShoppingCart, X, Lock, CalendarClock } from "lucide-react"
 
 interface Batch {
   id: string; plant_name: string; batch_code?: string; lifecycle_status?: string
@@ -20,6 +20,11 @@ interface Batch {
 }
 interface Customer { id: string; name: string; phone?: string; contact?: string; credit_limit?: number }
 interface PriceTier { customer_type: string; min_quantity: number; max_quantity: number; price_per_seedling: number }
+interface BookingOption {
+  id: string; batch_id: string | null; plant_name: string; customer_id: string
+  quantity_booked: number; status: string
+  vnms_customers?: { name: string; contact: string } | null
+}
 
 function generateReceiptNumber() {
   const n = Math.floor(Math.random() * 90000) + 10000
@@ -45,6 +50,8 @@ export function POSModal({ open, onClose, onSaleComplete }: Props) {
   const [batches, setBatches] = useState<Batch[]>([])
   const [customers, setCustomers] = useState<Customer[]>([])
   const [priceTiers, setPriceTiers] = useState<PriceTier[]>([])
+  const [bookings, setBookings] = useState<BookingOption[]>([])
+  const [selectedBookingId, setSelectedBookingId] = useState("")
 
   // Form state
   const [customerId, setCustomerId] = useState("walk-in")
@@ -97,8 +104,25 @@ export function POSModal({ open, onClose, onSaleComplete }: Props) {
       setManagerPin("")
       setNotes("")
       setOutstandingBalance(null)
+      setSelectedBookingId("")
     }
   }, [open])
+
+  function applyBooking(bookingId: string) {
+    setSelectedBookingId(bookingId)
+    if (bookingId === "none") return
+    const booking = bookings.find(b => b.id === bookingId)
+    if (!booking) return
+    if (booking.customer_id && customers.some(c => c.id === booking.customer_id)) {
+      setCustomerId(booking.customer_id)
+    }
+    const matchedBatch = booking.batch_id
+      ? batches.find(b => b.id === booking.batch_id)
+      : batches.find(b => b.plant_name.toLowerCase() === booking.plant_name.toLowerCase())
+    if (matchedBatch) setBatchId(matchedBatch.id)
+    setQuantity(String(booking.quantity_booked))
+    setNotes(prev => prev || `From booking: ${booking.plant_name}`)
+  }
 
   useEffect(() => {
     async function loadOutstanding() {
@@ -146,15 +170,20 @@ export function POSModal({ open, onClose, onSaleComplete }: Props) {
       return
     }
 
-    const [batchRes, custRes, priceRes] = await Promise.all([
+    const [batchRes, custRes, priceRes, bookingRes] = await Promise.all([
       supabase.from("vnms_batches").select("id, plant_name, batch_code, lifecycle_status, quantity, available_stock, price, crop_type")
         .in("lifecycle_status", ["selling", "ready", "Ready", "Selling"]).gt("quantity", 0),
       supabase.from("vnms_customers").select("id, name, phone, contact, credit_limit").order("name"),
       supabase.from("vnms_prices").select("*").order("min_quantity"),
+      (supabase.from("vnms_batch_bookings") as any)
+        .select("id, batch_id, plant_name, customer_id, quantity_booked, status, vnms_customers(name, contact)")
+        .in("status", ["pending", "confirmed"])
+        .order("created_at", { ascending: false }),
     ])
     setBatches((batchRes.data as Batch[]) || [])
     setCustomers((custRes.data as Customer[]) || [])
     setPriceTiers((priceRes.data as PriceTier[]) || [])
+    setBookings(bookingRes.error ? [] : ((bookingRes.data as BookingOption[]) || []))
   }
 
   async function handleConfirmSale() {
@@ -233,6 +262,12 @@ export function POSModal({ open, onClose, onSaleComplete }: Props) {
             .eq("quantity", stockAfterSale)
           throw saleError
         }
+      }
+
+      if (selectedBookingId && selectedBookingId !== "none" && !isDemoMode) {
+        await (supabase.from("vnms_batch_bookings") as any)
+          .update({ status: "fulfilled", updated_at: new Date().toISOString() })
+          .eq("id", selectedBookingId)
       }
 
       toast({ title: "Sale recorded!", description: `${receiptNumber} — Ksh ${totalAmount.toLocaleString()}` })
@@ -341,6 +376,24 @@ ${nurseryTagline ? `<div class="center small" style="font-style:italic; margin-t
 
         {step === 'form' ? (
           <div className="space-y-4">
+            {/* Booking */}
+            {bookings.length > 0 && (
+              <div className="space-y-1">
+                <Label className="flex items-center gap-1.5"><CalendarClock className="h-3.5 w-3.5" /> From a booking (optional)</Label>
+                <Select value={selectedBookingId} onValueChange={applyBooking}>
+                  <SelectTrigger><SelectValue placeholder="Pick a pending/confirmed booking to prefill…" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">None — new sale</SelectItem>
+                    {bookings.map(b => (
+                      <SelectItem key={b.id} value={b.id}>
+                        {b.vnms_customers?.name || "Unknown"} — {b.plant_name} × {b.quantity_booked} ({b.status})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
             {/* Customer */}
             <div className="space-y-1">
               <Label>Customer</Label>
