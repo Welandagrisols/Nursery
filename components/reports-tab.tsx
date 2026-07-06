@@ -8,7 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Download, Loader2, TrendingUp, TrendingDown, Minus, Package, BarChart3, Star, Award, ShoppingCart } from "lucide-react"
+import { Download, Loader2, TrendingUp, TrendingDown, Minus, Package, BarChart3, Star, Award, ShoppingCart, CreditCard, AlertTriangle } from "lucide-react"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { DemoModeBanner } from "./demo-mode-banner"
 import { exportToExcel } from "@/lib/excel-export"
@@ -72,6 +72,14 @@ export function ReportsTab() {
   const [profitabilityData, setProfitabilityData] = useState<any[]>([])
   const [supplierData, setSupplierData] = useState<any[]>([])
   const [salesReport, setSalesReport] = useState<{ daily: any[]; totals: { today: number; week: number; month: number; todayCount: number; weekCount: number } }>({ daily: [], totals: { today: 0, week: 0, month: 0, todayCount: 0, weekCount: 0 } })
+  const [creditReport, setCreditReport] = useState<{
+    byCustomer: { id: string; name: string; outstanding: number; count: number }[]
+    aging: { bucket: string; amount: number; count: number }[]
+    weekly: { week: string; issued: number; outstanding: number }[]
+    totalOutstanding: number
+    totalIssued: number
+    totalCollected: number
+  }>({ byCustomer: [], aging: [], weekly: [], totalOutstanding: 0, totalIssued: 0, totalCollected: 0 })
   const [loading, setLoading] = useState(true)
   const [exporting, setExporting] = useState(false)
   const [tablesExist, setTablesExist] = useState(true)
@@ -206,6 +214,69 @@ export function ReportsTab() {
         })
       }
 
+      // Fetch credit sales report
+      const creditRes = await (supabase.from("vnms_sales") as any)
+        .select("id, customer_id, sale_date, total_amount, payment_method, payment_reference, customer:vnms_customers(id, name)")
+        .or("payment_method.eq.Credit,payment_method.like.Credit%")
+      if (!creditRes.error && creditRes.data) {
+        const creditSales = creditRes.data as any[]
+        const isPaid = (s: any) => (s.payment_method || "").toLowerCase().includes("paid") && !(s.payment_method || "").toLowerCase().includes("partial")
+        const getPaid = (s: any) => s.payment_reference?.startsWith("partial:") ? Number(s.payment_reference.split(":")[1]) || 0 : 0
+        const getOutstanding = (s: any) => isPaid(s) ? 0 : Math.max(0, (s.total_amount || 0) - getPaid(s))
+
+        const custMap = new Map<string, { id: string; name: string; outstanding: number; count: number }>()
+        const agingBuckets = { "0-7 days": 0, "8-14 days": 0, "15+ days": 0 }
+        const agingCounts = { "0-7 days": 0, "8-14 days": 0, "15+ days": 0 }
+        let totalOutstanding = 0, totalIssued = 0, totalCollected = 0
+        const weekMap = new Map<string, { issued: number; outstanding: number }>()
+
+        creditSales.forEach((s: any) => {
+          const outstanding = getOutstanding(s)
+          totalIssued += s.total_amount || 0
+          totalCollected += getPaid(s) + (isPaid(s) ? (s.total_amount || 0) : 0)
+          totalOutstanding += outstanding
+
+          if (outstanding > 0) {
+            const custId = s.customer_id || "unknown"
+            const custName = s.customer?.name || "Unknown"
+            const cur = custMap.get(custId) || { id: custId, name: custName, outstanding: 0, count: 0 }
+            cur.outstanding += outstanding
+            cur.count += 1
+            custMap.set(custId, cur)
+
+            const days = Math.floor((Date.now() - new Date(s.sale_date).getTime()) / (1000 * 60 * 60 * 24))
+            const bucket = days <= 7 ? "0-7 days" : days <= 14 ? "8-14 days" : "15+ days"
+            agingBuckets[bucket] += outstanding
+            agingCounts[bucket] += 1
+          }
+
+          const saleDate = new Date(s.sale_date)
+          const weekStart = new Date(saleDate)
+          weekStart.setDate(saleDate.getDate() - ((saleDate.getDay() + 6) % 7))
+          const weekKey = weekStart.toISOString().split("T")[0]
+          const wk = weekMap.get(weekKey) || { issued: 0, outstanding: 0 }
+          wk.issued += s.total_amount || 0
+          wk.outstanding += outstanding
+          weekMap.set(weekKey, wk)
+        })
+
+        const weekly = Array.from(weekMap.entries())
+          .sort(([a], [b]) => a.localeCompare(b))
+          .slice(-8)
+          .map(([week, v]) => ({ week, ...v }))
+
+        setCreditReport({
+          byCustomer: Array.from(custMap.values()).sort((a, b) => b.outstanding - a.outstanding),
+          aging: (["0-7 days", "8-14 days", "15+ days"] as const).map(bucket => ({
+            bucket, amount: agingBuckets[bucket], count: agingCounts[bucket],
+          })),
+          weekly,
+          totalOutstanding,
+          totalIssued,
+          totalCollected,
+        })
+      }
+
       // Fetch supplier leaderboard from sachets
       const sachetsRes = await supabase.from("vnms_sachets").select("supplier_name, label_germination_pct, actual_germination_pct, cost_paid, seed_count, crop_type")
       if (!sachetsRes.error && sachetsRes.data) {
@@ -325,6 +396,9 @@ export function ReportsTab() {
           </TabsTrigger>
           <TabsTrigger value="suppliers" className="flex-1 flex items-center gap-1 text-xs sm:text-sm">
             <Award className="h-3 w-3" /> Suppliers
+          </TabsTrigger>
+          <TabsTrigger value="credit" className="flex-1 flex items-center gap-1 text-xs sm:text-sm">
+            <CreditCard className="h-3 w-3" /> Credit
           </TabsTrigger>
         </TabsList>
 
@@ -575,6 +649,133 @@ export function ReportsTab() {
                             ) : <span className="text-muted-foreground text-xs">Not recorded</span>}
                           </TableCell>
                           <TableCell className="font-medium">Ksh {s.total_cost.toLocaleString()}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="credit" className="mt-4 space-y-4">
+          <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
+            <Card className="border-red-200 bg-red-50">
+              <CardContent className="p-4">
+                <p className="text-xs font-semibold text-red-600 uppercase mb-1">Outstanding Credit</p>
+                <p className="text-2xl font-black text-red-700">Ksh {creditReport.totalOutstanding.toLocaleString()}</p>
+                <p className="text-xs text-red-600 mt-0.5">{creditReport.byCustomer.length} customer{creditReport.byCustomer.length !== 1 ? "s" : ""} owing</p>
+              </CardContent>
+            </Card>
+            <Card className="border-blue-200 bg-blue-50">
+              <CardContent className="p-4">
+                <p className="text-xs font-semibold text-blue-600 uppercase mb-1">Total Credit Issued</p>
+                <p className="text-2xl font-black text-blue-700">Ksh {creditReport.totalIssued.toLocaleString()}</p>
+              </CardContent>
+            </Card>
+            <Card className="border-green-200 bg-green-50 col-span-2 lg:col-span-1">
+              <CardContent className="p-4">
+                <p className="text-xs font-semibold text-green-600 uppercase mb-1">Total Collected</p>
+                <p className="text-2xl font-black text-green-700">Ksh {creditReport.totalCollected.toLocaleString()}</p>
+              </CardContent>
+            </Card>
+          </div>
+
+          <Card>
+            <CardHeader className="px-4 py-3">
+              <CardTitle className="text-sm flex items-center gap-2"><AlertTriangle className="h-4 w-4 text-amber-500" /> Aging of Outstanding Credit</CardTitle>
+            </CardHeader>
+            <CardContent className="px-4 pb-4 space-y-2">
+              {loading ? (
+                <div className="text-center py-6 text-muted-foreground text-sm">Loading...</div>
+              ) : creditReport.totalOutstanding === 0 ? (
+                <div className="text-center py-6 text-muted-foreground text-sm">No outstanding credit sales</div>
+              ) : (
+                creditReport.aging.map(a => {
+                  const pct = creditReport.totalOutstanding > 0 ? (a.amount / creditReport.totalOutstanding) * 100 : 0
+                  const color = a.bucket === "15+ days" ? "bg-red-500" : a.bucket === "8-14 days" ? "bg-amber-400" : "bg-green-400"
+                  return (
+                    <div key={a.bucket} className="flex items-center gap-3">
+                      <span className="text-xs text-gray-500 w-20 shrink-0">{a.bucket}</span>
+                      <div className="flex-1 h-5 bg-gray-100 rounded overflow-hidden">
+                        <div className={`h-full ${color} rounded transition-all`} style={{ width: `${pct}%` }} />
+                      </div>
+                      <span className="text-xs font-semibold text-gray-700 w-36 text-right shrink-0">
+                        Ksh {a.amount.toLocaleString()} <span className="text-gray-400 font-normal">({a.count})</span>
+                      </span>
+                    </div>
+                  )
+                })
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="px-4 py-3">
+              <CardTitle className="text-sm">Credit Issued vs Outstanding — Last 8 Weeks</CardTitle>
+            </CardHeader>
+            <CardContent className="px-4 pb-4">
+              {loading ? (
+                <div className="text-center py-6 text-muted-foreground text-sm">Loading...</div>
+              ) : creditReport.weekly.length === 0 ? (
+                <div className="text-center py-6 text-muted-foreground text-sm">No credit sales recorded yet</div>
+              ) : (
+                <div className="space-y-3">
+                  {creditReport.weekly.map(w => {
+                    const maxVal = Math.max(...creditReport.weekly.map(x => x.issued), 1)
+                    const issuedPct = (w.issued / maxVal) * 100
+                    const outstandingPct = (w.outstanding / maxVal) * 100
+                    const weekLabel = new Date(w.week + "T00:00:00").toLocaleDateString("en-KE", { day: "numeric", month: "short" })
+                    return (
+                      <div key={w.week} className="space-y-1">
+                        <div className="flex justify-between text-xs text-gray-500">
+                          <span>Week of {weekLabel}</span>
+                          <span>Issued: Ksh {w.issued.toLocaleString()} · Outstanding: Ksh {w.outstanding.toLocaleString()}</span>
+                        </div>
+                        <div className="h-4 bg-gray-100 rounded overflow-hidden relative">
+                          <div className="h-full bg-blue-300 rounded absolute inset-y-0 left-0" style={{ width: `${issuedPct}%` }} />
+                          <div className="h-full bg-red-500 rounded absolute inset-y-0 left-0" style={{ width: `${outstandingPct}%` }} />
+                        </div>
+                      </div>
+                    )
+                  })}
+                  <div className="flex items-center gap-4 pt-1 text-xs text-gray-500">
+                    <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-blue-300 inline-block" /> Issued</span>
+                    <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-red-500 inline-block" /> Still Outstanding</span>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="px-4 py-3">
+              <CardTitle className="text-sm">Outstanding by Customer</CardTitle>
+            </CardHeader>
+            <CardContent className="px-4 pb-4">
+              {loading ? (
+                <div className="text-center py-6 text-muted-foreground text-sm">Loading...</div>
+              ) : creditReport.byCustomer.length === 0 ? (
+                <div className="text-center py-6 text-muted-foreground text-sm">No customers with outstanding credit</div>
+              ) : (
+                <div className="rounded-md border overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-8">#</TableHead>
+                        <TableHead>Customer</TableHead>
+                        <TableHead>Unpaid Sales</TableHead>
+                        <TableHead className="text-right">Outstanding</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {creditReport.byCustomer.map((c, i) => (
+                        <TableRow key={c.id}>
+                          <TableCell className="font-bold text-primary">{i + 1}</TableCell>
+                          <TableCell className="font-medium">{c.name}</TableCell>
+                          <TableCell className="text-muted-foreground">{c.count}</TableCell>
+                          <TableCell className="text-right font-bold text-red-600">Ksh {c.outstanding.toLocaleString()}</TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
