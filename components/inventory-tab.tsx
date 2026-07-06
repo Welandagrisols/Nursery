@@ -113,7 +113,9 @@ export function InventoryTab() {
   async function updateLifecycleStatus(id: string, status: string) {
     if (isDemoMode || !tableExists) return
     try {
-      const { error } = await (supabase.from("vnms_batches") as any).update({ lifecycle_status: status }).eq("id", id)
+      const { error } = await (supabase.from("vnms_batches") as any)
+        .update({ lifecycle_status: status, stage_updated_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+        .eq("id", id)
       if (error) throw error
       toast({ title: "Status updated", description: `Lifecycle → ${status.replace(/_/g, " ")}` })
       await fetchInventory()
@@ -121,6 +123,31 @@ export function InventoryTab() {
       toast({ title: "Update failed", description: err.message, variant: "destructive" })
     }
   }
+
+  const STAGE_STALL_THRESHOLDS: Record<string, number> = {
+    received: 7,
+    planted: 14,
+    germination: 21,
+    ready: 14,
+    selling: 30,
+  }
+
+  const getDaysInStage = (item: any): number => {
+    const since = item.stage_updated_at || item.updated_at || item.created_at
+    if (!since) return 0
+    return Math.floor((Date.now() - new Date(since).getTime()) / (1000 * 60 * 60 * 24))
+  }
+
+  const isStagnant = (item: any): boolean => {
+    if (isConsumable(item) || !item.lifecycle_status || item.lifecycle_status === "sold_out") return false
+    const threshold = STAGE_STALL_THRESHOLDS[item.lifecycle_status]
+    if (!threshold) return false
+    return getDaysInStage(item) >= threshold
+  }
+
+  const LOW_STOCK_THRESHOLD = 20
+  const isLowStockSelling = (item: any): boolean =>
+    !isConsumable(item) && item.lifecycle_status === "selling" && (item.quantity || 0) > 0 && (item.quantity || 0) <= LOW_STOCK_THRESHOLD
 
   async function deleteInventoryItem(id: string) {
     if (isDemoMode || !tableExists) {
@@ -281,6 +308,9 @@ export function InventoryTab() {
     categories: new Set(inventory.map(item => item.category))
   };
 
+  const stagnantBatches = currentPlants.filter(isStagnant)
+  const lowStockSellingBatches = currentPlants.filter(isLowStockSelling)
+
 
   return (
     <div className="modern-page space-y-8">
@@ -293,6 +323,42 @@ export function InventoryTab() {
         <h1 className="modern-title">Inventory Management</h1>
         <p className="modern-subtitle">Manage your seedlings, consumables, and nursery inventory</p>
       </div>
+
+      {/* Needs Attention Banner */}
+      {(stagnantBatches.length > 0 || lowStockSellingBatches.length > 0) && (
+        <div className="rounded-lg border border-amber-300 bg-amber-50 p-4 space-y-2">
+          <div className="flex items-center gap-2 text-amber-800 font-semibold text-sm">
+            <TrendingUp className="h-4 w-4 rotate-180" />
+            Needs Attention
+          </div>
+          <div className="flex flex-wrap gap-x-6 gap-y-1 text-xs text-amber-800">
+            {stagnantBatches.length > 0 && (
+              <span>
+                <strong>{stagnantBatches.length}</strong> batch{stagnantBatches.length !== 1 ? "es" : ""} stuck in their current stage longer than expected
+              </span>
+            )}
+            {lowStockSellingBatches.length > 0 && (
+              <span>
+                <strong>{lowStockSellingBatches.length}</strong> batch{lowStockSellingBatches.length !== 1 ? "es" : ""} running low on stock while selling
+              </span>
+            )}
+          </div>
+          {stagnantBatches.length > 0 && (
+            <div className="flex flex-wrap gap-1.5 pt-1">
+              {stagnantBatches.slice(0, 8).map(b => (
+                <Badge key={b.id} variant="outline" className="text-xs bg-white border-amber-300 text-amber-800">
+                  {b.plant_name} · {getDaysInStage(b)}d in {b.lifecycle_status?.replace(/_/g, " ")}
+                </Badge>
+              ))}
+              {stagnantBatches.length > 8 && (
+                <Badge variant="outline" className="text-xs bg-white border-amber-300 text-amber-800">
+                  +{stagnantBatches.length - 8} more
+                </Badge>
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Summary Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
@@ -596,6 +662,20 @@ export function InventoryTab() {
                             {item.status}
                           </Badge>
                         </div>
+                        {(isStagnant(item) || isLowStockSelling(item)) && (
+                          <div className="col-span-2 flex flex-wrap gap-1 pt-1">
+                            {isStagnant(item) && (
+                              <Badge variant="outline" className="text-[10px] h-5 bg-amber-100 text-amber-800 border-amber-300">
+                                Stuck {getDaysInStage(item)}d
+                              </Badge>
+                            )}
+                            {isLowStockSelling(item) && (
+                              <Badge variant="outline" className="text-[10px] h-5 bg-orange-100 text-orange-800 border-orange-300">
+                                Low stock ({item.quantity})
+                              </Badge>
+                            )}
+                          </div>
+                        )}
                       </div>
 
                       {(item.age || item.section || item.source) && (
