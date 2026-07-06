@@ -45,7 +45,7 @@ export function CreditorsTab() {
   const [tableReady, setTableReady] = useState(true)
   const [payDialog, setPayDialog] = useState<PaymentDialog | null>(null)
   const [paying, setPaying] = useState(false)
-  const [filter, setFilter] = useState<"all" | "outstanding" | "paid">("outstanding")
+  const [filter, setFilter] = useState<"all" | "outstanding" | "overdue" | "paid">("outstanding")
 
   useEffect(() => { fetchCreditSales() }, [])
 
@@ -77,6 +77,20 @@ export function CreditorsTab() {
 
   const isPartial = (s: CreditSale) =>
     s.payment_reference?.startsWith("partial:") && !isPaid(s)
+
+  const getDaysOutstanding = (s: CreditSale): number => {
+    const saleDate = new Date(s.sale_date)
+    const now = new Date()
+    return Math.floor((now.getTime() - saleDate.getTime()) / (1000 * 60 * 60 * 24))
+  }
+
+  const getOverdueLevel = (s: CreditSale): "none" | "warning" | "overdue" => {
+    if (isPaid(s)) return "none"
+    const days = getDaysOutstanding(s)
+    if (days >= 14) return "overdue"
+    if (days >= 7) return "warning"
+    return "none"
+  }
 
   const getRemainingBalance = (s: CreditSale): number =>
     Math.max(0, s.total_amount - getAmountPaid(s))
@@ -158,10 +172,19 @@ export function CreditorsTab() {
   const outstanding = sales.filter(s => !isPaid(s) && !isPartial(s))
   const partiallyPaid = sales.filter(s => isPartial(s))
   const paid = sales.filter(s => isPaid(s))
+  const overdueSales = sales.filter(s => getOverdueLevel(s) === "overdue")
   const totalOutstanding = outstanding.reduce((sum, s) => sum + s.total_amount, 0)
   const totalCollected = paid.reduce((sum, s) => sum + s.total_amount, 0)
 
-  const filtered = filter === "outstanding" ? [...outstanding, ...partiallyPaid] : filter === "paid" ? paid : sales
+  const filtered = filter === "outstanding" ? [...outstanding, ...partiallyPaid]
+    : filter === "overdue" ? overdueSales
+    : filter === "paid" ? paid
+    : sales
+
+  const sortedFiltered = [...filtered].sort((a, b) => {
+    if (filter !== "outstanding" && filter !== "overdue") return 0
+    return getDaysOutstanding(b) - getDaysOutstanding(a)
+  })
 
   if (!tableReady) {
     return (
@@ -203,20 +226,37 @@ export function CreditorsTab() {
         </Card>
       </div>
 
+      {overdueSales.length > 0 && (
+        <button
+          onClick={() => setFilter("overdue")}
+          className="w-full flex items-center gap-2 bg-red-100 border border-red-300 rounded-xl p-3 text-left hover:bg-red-200 transition-colors"
+        >
+          <AlertTriangle className="h-4 w-4 text-red-600 shrink-0 animate-pulse" />
+          <p className="text-sm text-red-800 font-semibold">
+            {overdueSales.length} {overdueSales.length === 1 ? "sale is" : "sales are"} 14+ days overdue — tap to review
+          </p>
+        </button>
+      )}
+
       {/* Filter */}
-      <div className="flex gap-2">
-        {(["outstanding","all","paid"] as const).map(f => (
+      <div className="flex gap-2 flex-wrap">
+        {(["outstanding","overdue","all","paid"] as const).map(f => (
           <button
             key={f}
             onClick={() => setFilter(f)}
             className={cn(
-              "px-3 py-1.5 rounded-full text-sm font-semibold transition-all",
+              "px-3 py-1.5 rounded-full text-sm font-semibold transition-all flex items-center gap-1",
               filter === f
                 ? "bg-green-600 text-white"
                 : "bg-gray-100 text-gray-600 hover:bg-gray-200"
             )}
           >
-            {f === "outstanding" ? "Outstanding" : f === "paid" ? "Paid" : "All"}
+            {f === "outstanding" ? "Outstanding" : f === "overdue" ? "Overdue" : f === "paid" ? "Paid" : "All"}
+            {f === "overdue" && overdueSales.length > 0 && (
+              <span className={cn("text-xs rounded-full px-1.5", filter === f ? "bg-white/20" : "bg-red-500 text-white")}>
+                {overdueSales.length}
+              </span>
+            )}
           </button>
         ))}
       </div>
@@ -224,12 +264,12 @@ export function CreditorsTab() {
       {/* Sales list */}
       {loading ? (
         <p className="text-center text-gray-400 py-10">Loading credit sales...</p>
-      ) : filtered.length === 0 ? (
+      ) : sortedFiltered.length === 0 ? (
         <Card className="border-dashed">
           <CardContent className="text-center py-12">
             <CreditCard className="h-10 w-10 mx-auto mb-3 text-gray-300" />
             <p className="text-gray-500 font-medium">
-              {filter === "outstanding" ? "No outstanding credit sales" : "No credit sales found"}
+              {filter === "outstanding" ? "No outstanding credit sales" : filter === "overdue" ? "No overdue credit sales" : "No credit sales found"}
             </p>
             <p className="text-gray-400 text-sm mt-1">
               Credit sales appear here when payment method is set to "Credit" in the POS.
@@ -238,10 +278,17 @@ export function CreditorsTab() {
         </Card>
       ) : (
         <div className="space-y-3">
-          {filtered.map(sale => {
+          {sortedFiltered.map(sale => {
             const paid_ = isPaid(sale)
+            const overdueLevel = getOverdueLevel(sale)
+            const daysOutstanding = getDaysOutstanding(sale)
             return (
-              <Card key={sale.id} className={cn("transition-all", paid_ && "opacity-70")}>
+              <Card key={sale.id} className={cn(
+                "transition-all",
+                paid_ && "opacity-70",
+                overdueLevel === "overdue" && "border-red-400 bg-red-50/40",
+                overdueLevel === "warning" && "border-amber-300 bg-amber-50/40"
+              )}>
                 <CardContent className="p-4">
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex-1 min-w-0">
@@ -272,9 +319,21 @@ export function CreditorsTab() {
                       <p className="text-sm text-gray-600">
                         {sale.plant_name || sale.batch_code || "Seedlings"} — {sale.quantity.toLocaleString()} units
                       </p>
-                      <p className="text-xs text-gray-400 mt-0.5">
-                        {new Date(sale.sale_date).toLocaleDateString("en-KE", { day: "numeric", month: "short", year: "numeric" })}
-                      </p>
+                      <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                        <p className="text-xs text-gray-400">
+                          {new Date(sale.sale_date).toLocaleDateString("en-KE", { day: "numeric", month: "short", year: "numeric" })}
+                        </p>
+                        {overdueLevel === "overdue" && (
+                          <Badge className="bg-red-600 text-white border-red-600 text-[10px] px-1.5 py-0 h-4">
+                            {daysOutstanding}d overdue
+                          </Badge>
+                        )}
+                        {overdueLevel === "warning" && (
+                          <Badge className="bg-amber-100 text-amber-700 border-amber-300 text-[10px] px-1.5 py-0 h-4">
+                            {daysOutstanding}d — due soon
+                          </Badge>
+                        )}
+                      </div>
                       {sale.notes && (
                         <p className="text-xs text-gray-400 mt-1 italic">{sale.notes}</p>
                       )}
