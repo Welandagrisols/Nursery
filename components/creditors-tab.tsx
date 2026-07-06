@@ -46,6 +46,8 @@ export function CreditorsTab() {
   const [payDialog, setPayDialog] = useState<PaymentDialog | null>(null)
   const [paying, setPaying] = useState(false)
   const [filter, setFilter] = useState<"all" | "outstanding" | "overdue" | "paid">("outstanding")
+  const [bulkOpen, setBulkOpen] = useState(false)
+  const [sentIds, setSentIds] = useState<Set<string>>(new Set())
 
   useEffect(() => { fetchCreditSales() }, [])
 
@@ -100,15 +102,10 @@ export function CreditorsTab() {
     setPayDialog({ sale, amount: String(remaining), method: "Cash" })
   }
 
-  const sendReminder = (sale: CreditSale) => {
-    const contact = sale.customer?.contact?.replace(/\D/g, "")
-    if (!contact) {
-      toast({ title: "No phone number", description: "This customer has no phone number on file.", variant: "destructive" })
-      return
-    }
+  const buildReminderMessage = (sale: CreditSale): string => {
     const remaining = getRemainingBalance(sale)
     const dateStr = new Date(sale.sale_date).toLocaleDateString("en-KE", { day: "numeric", month: "short", year: "numeric" })
-    const lines = [
+    return [
       `Hi ${sale.customer?.name ?? "there"}, this is a friendly reminder from *${nurseryName}*.`,
       ``,
       `🌿 ${sale.plant_name || sale.batch_code || "Seedlings"} — ${sale.quantity.toLocaleString()} units`,
@@ -118,7 +115,22 @@ export function CreditorsTab() {
       `Kindly clear this balance at your earliest convenience. Thank you for your business!`,
       nurseryPhone ? `📞 ${nurseryPhone}` : ``,
     ].filter(l => l !== "").join("\n")
+  }
+
+  const sendReminder = (sale: CreditSale) => {
+    const contact = sale.customer?.contact?.replace(/\D/g, "")
+    if (!contact) {
+      toast({ title: "No phone number", description: "This customer has no phone number on file.", variant: "destructive" })
+      return
+    }
+    const lines = buildReminderMessage(sale)
     window.open(`https://wa.me/${contact}?text=${encodeURIComponent(lines)}`, "_blank")
+    setSentIds(prev => new Set(prev).add(sale.id))
+  }
+
+  const openBulkReminders = () => {
+    setSentIds(new Set())
+    setBulkOpen(true)
   }
 
   const markAsPaid = async () => {
@@ -227,15 +239,24 @@ export function CreditorsTab() {
       </div>
 
       {overdueSales.length > 0 && (
-        <button
-          onClick={() => setFilter("overdue")}
-          className="w-full flex items-center gap-2 bg-red-100 border border-red-300 rounded-xl p-3 text-left hover:bg-red-200 transition-colors"
-        >
-          <AlertTriangle className="h-4 w-4 text-red-600 shrink-0 animate-pulse" />
-          <p className="text-sm text-red-800 font-semibold">
-            {overdueSales.length} {overdueSales.length === 1 ? "sale is" : "sales are"} 14+ days overdue — tap to review
-          </p>
-        </button>
+        <div className="w-full flex items-center gap-2 bg-red-100 border border-red-300 rounded-xl p-3">
+          <button
+            onClick={() => setFilter("overdue")}
+            className="flex items-center gap-2 flex-1 min-w-0 text-left"
+          >
+            <AlertTriangle className="h-4 w-4 text-red-600 shrink-0 animate-pulse" />
+            <p className="text-sm text-red-800 font-semibold">
+              {overdueSales.length} {overdueSales.length === 1 ? "sale is" : "sales are"} 14+ days overdue
+            </p>
+          </button>
+          <Button
+            size="sm"
+            onClick={openBulkReminders}
+            className="bg-red-600 hover:bg-red-700 text-white text-xs px-3 h-7 shrink-0"
+          >
+            <MessageCircle className="h-3 w-3 mr-1" /> Remind All
+          </Button>
+        </div>
       )}
 
       {/* Filter */}
@@ -441,6 +462,53 @@ export function CreditorsTab() {
               </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Bulk reminder dialog */}
+      <Dialog open={bulkOpen} onOpenChange={setBulkOpen}>
+        <DialogContent className="sm:max-w-md mx-4 max-h-[80vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle>Send Reminders to Overdue Customers</DialogTitle>
+          </DialogHeader>
+          <p className="text-xs text-gray-500 -mt-2">
+            WhatsApp requires each message to be sent individually. Tap "Send" on each customer below — it will open WhatsApp pre-filled with their reminder, ready to send.
+          </p>
+          <div className="space-y-2 overflow-y-auto flex-1 -mx-1 px-1">
+            {overdueSales.map(sale => {
+              const hasContact = !!sale.customer?.contact
+              const wasSent = sentIds.has(sale.id)
+              return (
+                <div key={sale.id} className="flex items-center justify-between gap-3 bg-gray-50 rounded-lg p-3">
+                  <div className="min-w-0">
+                    <p className="font-semibold text-gray-800 text-sm truncate">{sale.customer?.name ?? "Walk-in Customer"}</p>
+                    <p className="text-xs text-gray-500">
+                      Ksh {getRemainingBalance(sale).toLocaleString()} · {getDaysOutstanding(sale)}d overdue
+                    </p>
+                  </div>
+                  {!hasContact ? (
+                    <Badge className="bg-gray-200 text-gray-500 border-gray-300 shrink-0">No phone</Badge>
+                  ) : wasSent ? (
+                    <Badge className="bg-green-100 text-green-700 border-green-200 shrink-0">
+                      <CheckCircle className="h-3 w-3 mr-1" /> Sent
+                    </Badge>
+                  ) : (
+                    <Button
+                      size="sm"
+                      onClick={() => sendReminder(sale)}
+                      className="bg-green-600 hover:bg-green-700 text-white text-xs px-3 h-7 shrink-0"
+                    >
+                      <MessageCircle className="h-3 w-3 mr-1" /> Send
+                    </Button>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+          <div className="flex items-center justify-between pt-2 border-t">
+            <p className="text-xs text-gray-400">{sentIds.size} of {overdueSales.length} sent</p>
+            <Button variant="outline" size="sm" onClick={() => setBulkOpen(false)}>Done</Button>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
