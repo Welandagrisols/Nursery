@@ -46,6 +46,20 @@ function getTemplates(nurseryName: string) {
   ]
 }
 
+function buildBatchReadyMessage(nurseryName: string, plantName: string, readyDate: string) {
+  const dateLabel = readyDate
+    ? new Date(readyDate).toLocaleDateString("en-KE", { day: "numeric", month: "long", weekday: "long" })
+    : "soon"
+  return `🌱 *${plantName.toUpperCase()} — READY!* \n\n${nurseryName}\n\nGreat news! Your *${plantName}* is ready${readyDate ? ` as of ${dateLabel}` : ""}. Come collect or let us know your preferred delivery time.\n\nQuantities are limited — first come, first served.\n\n_${nurseryName} — Quality Seedlings, Healthy Harvests_ 🌿`
+}
+
+function buildFullyBookedMessage(nurseryName: string, plantName: string, readyDate: string) {
+  const dateLabel = readyDate
+    ? new Date(readyDate).toLocaleDateString("en-KE", { day: "numeric", month: "long", weekday: "long" })
+    : "our next planting cycle"
+  return `📢 *${plantName.toUpperCase()} — FULLY BOOKED!*\n\n${nurseryName}\n\nOur current batch of *${plantName}* is fully booked. The next available batch will be ready on *${dateLabel}*.\n\nBook now to reserve your seedlings before they run out!\n\n_${nurseryName} — Quality Seedlings, Healthy Harvests_ 🌿`
+}
+
 /* ── Social platforms ──────────────────────────────────── */
 const SOCIAL_KEYS = [
   { key: "whatsapp",  label: "WhatsApp Business Number", icon: Phone,    placeholder: "e.g. +254712345678" },
@@ -109,7 +123,17 @@ export function CommsTab() {
   const [customers, setCustomers] = useState<Customer[]>([])
   const [loadingCustomers, setLoadingCustomers] = useState(false)
   const [batches, setBatches] = useState<any[]>([])
+  const [allPlantOptions, setAllPlantOptions] = useState<{ plant_name: string; expected_ready_date?: string | null }[]>([])
   const [logs, setLogs] = useState<BroadcastLog[]>([])
+
+  /* ── batch-audience state ── */
+  const [audienceMode, setAudienceMode] = useState<"type" | "batch">("type")
+  const [batchAudienceSource, setBatchAudienceSource] = useState<"previous_buyers" | "booked">("previous_buyers")
+  const [selectedPlant, setSelectedPlant] = useState("")
+  const [batchReadyDate, setBatchReadyDate] = useState("")
+  const [batchAudienceCustomers, setBatchAudienceCustomers] = useState<Customer[]>([])
+  const [loadingBatchAudience, setLoadingBatchAudience] = useState(false)
+  const [batchTemplate, setBatchTemplate] = useState<"batch_ready" | "fully_booked">("batch_ready")
 
   const [socials, setSocials] = useState<Record<string, string>>({})
   const [savingSocials, setSavingSocials] = useState(false)
@@ -141,7 +165,67 @@ export function CommsTab() {
       .gt("quantity", 0)
       .order("plant_name")
     if (data) setBatches(data)
+
+    const { data: allData } = await (supabase.from("vnms_batches") as any)
+      .select("plant_name, expected_ready_date")
+      .order("plant_name")
+    if (allData) {
+      const seen = new Set<string>()
+      const options = allData.filter((b: any) => {
+        if (!b.plant_name || seen.has(b.plant_name)) return false
+        seen.add(b.plant_name)
+        return true
+      })
+      setAllPlantOptions(options)
+    }
   }
+
+  const loadBatchAudience = async (plantName: string, source: "previous_buyers" | "booked") => {
+    if (!plantName) { setBatchAudienceCustomers([]); return }
+    setLoadingBatchAudience(true)
+    try {
+      if (source === "previous_buyers") {
+        const { data } = await (supabase.from("vnms_sales") as any)
+          .select("customer_id, vnms_customers(id, name, contact, customer_type)")
+          .eq("plant_name", plantName)
+          .not("customer_id", "is", null)
+        const map = new Map<string, Customer>()
+        for (const row of data || []) {
+          const c = row.vnms_customers
+          if (c?.id && c?.contact?.trim()) map.set(c.id, c)
+        }
+        setBatchAudienceCustomers(Array.from(map.values()))
+      } else {
+        const { data } = await (supabase.from("vnms_batch_bookings") as any)
+          .select("customer_id, status, vnms_customers(id, name, contact, customer_type)")
+          .eq("plant_name", plantName)
+          .in("status", ["pending", "confirmed"])
+        const map = new Map<string, Customer>()
+        for (const row of data || []) {
+          const c = row.vnms_customers
+          if (c?.id && c?.contact?.trim()) map.set(c.id, c)
+        }
+        setBatchAudienceCustomers(Array.from(map.values()))
+      }
+    } catch {
+      setBatchAudienceCustomers([])
+    } finally {
+      setLoadingBatchAudience(false)
+    }
+  }
+
+  useEffect(() => {
+    if (audienceMode === "batch" && selectedPlant) {
+      loadBatchAudience(selectedPlant, batchAudienceSource)
+    }
+  }, [audienceMode, selectedPlant, batchAudienceSource])
+
+  useEffect(() => {
+    if (audienceMode === "batch") {
+      const match = allPlantOptions.find(p => p.plant_name === selectedPlant)
+      setBatchReadyDate(match?.expected_ready_date || "")
+    }
+  }, [selectedPlant, allPlantOptions, audienceMode])
 
   const loadLogs = async () => {
     try {
@@ -161,11 +245,12 @@ export function CommsTab() {
 
   /* ── derived: filtered customers ── */
   const targetCustomers = useMemo(() => {
+    if (audienceMode === "batch") return batchAudienceCustomers
     if (customerType === "all") return customers
     return customers.filter(c =>
       (c.customer_type || "Walk-in").toLowerCase() === customerType.toLowerCase()
     )
-  }, [customers, customerType])
+  }, [customers, customerType, audienceMode, batchAudienceCustomers])
 
   const phoneNumbers = useMemo(
     () => targetCustomers.map(c => c.contact.trim()).filter(Boolean),
@@ -182,6 +267,11 @@ export function CommsTab() {
   }
 
   const buildMessage = () => {
+    if (audienceMode === "batch") {
+      return batchTemplate === "batch_ready"
+        ? buildBatchReadyMessage(nurseryName, selectedPlant || "your seedlings", batchReadyDate)
+        : buildFullyBookedMessage(nurseryName, selectedPlant || "your seedlings", batchReadyDate)
+    }
     const tmpl = TEMPLATES.find(t => t.id === template)!
     const products = productList.trim() || batches
       .slice(0, 5)
@@ -216,9 +306,12 @@ export function CommsTab() {
 
   const logBroadcast = async () => {
     try {
+      const label = audienceMode === "batch"
+        ? `${selectedPlant || "batch"} · ${batchAudienceSource === "previous_buyers" ? "previous buyers" : "booked/ordered"}`
+        : customerType
       await (supabase.from("vnms_broadcast_messages") as any).insert({
         message_body: generatedMsg || buildMessage(),
-        customer_type: customerType,
+        customer_type: label,
         sent_by: "Manager",
         recipient_count: phoneNumbers.length,
       })
@@ -285,22 +378,96 @@ export function CommsTab() {
               </div>
             </CardHeader>
             <CardContent className="px-4 pb-4 space-y-3">
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                {CUSTOMER_TYPE_OPTIONS.map(opt => (
-                  <button
-                    key={opt.value}
-                    onClick={() => setCustomerType(opt.value)}
-                    className={cn(
-                      "p-2.5 rounded-xl border-2 text-xs font-semibold text-center transition-all",
-                      customerType === opt.value
-                        ? "border-green-600 bg-green-50 text-green-700"
-                        : "border-gray-200 bg-white text-gray-500 hover:border-green-300"
-                    )}
-                  >
-                    {opt.label}
-                  </button>
-                ))}
+              {/* Audience mode toggle */}
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  onClick={() => setAudienceMode("type")}
+                  className={cn(
+                    "p-2.5 rounded-xl border-2 text-xs font-semibold text-center transition-all",
+                    audienceMode === "type"
+                      ? "border-green-600 bg-green-50 text-green-700"
+                      : "border-gray-200 bg-white text-gray-500 hover:border-green-300"
+                  )}
+                >
+                  By Customer Type
+                </button>
+                <button
+                  onClick={() => setAudienceMode("batch")}
+                  className={cn(
+                    "p-2.5 rounded-xl border-2 text-xs font-semibold text-center transition-all",
+                    audienceMode === "batch"
+                      ? "border-green-600 bg-green-50 text-green-700"
+                      : "border-gray-200 bg-white text-gray-500 hover:border-green-300"
+                  )}
+                >
+                  By Plant / Batch
+                </button>
               </div>
+
+              {audienceMode === "type" ? (
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                  {CUSTOMER_TYPE_OPTIONS.map(opt => (
+                    <button
+                      key={opt.value}
+                      onClick={() => setCustomerType(opt.value)}
+                      className={cn(
+                        "p-2.5 rounded-xl border-2 text-xs font-semibold text-center transition-all",
+                        customerType === opt.value
+                          ? "border-green-600 bg-green-50 text-green-700"
+                          : "border-gray-200 bg-white text-gray-500 hover:border-green-300"
+                      )}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Plant / Batch</Label>
+                    <select
+                      value={selectedPlant}
+                      onChange={(e) => setSelectedPlant(e.target.value)}
+                      className="w-full h-9 rounded-md border border-gray-200 bg-white px-2 text-sm"
+                    >
+                      <option value="">Select a plant…</option>
+                      {allPlantOptions.map(p => (
+                        <option key={p.plant_name} value={p.plant_name}>{p.plant_name}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      onClick={() => setBatchAudienceSource("previous_buyers")}
+                      className={cn(
+                        "p-2 rounded-xl border-2 text-xs font-semibold text-center transition-all",
+                        batchAudienceSource === "previous_buyers"
+                          ? "border-green-600 bg-green-50 text-green-700"
+                          : "border-gray-200 bg-white text-gray-500 hover:border-green-300"
+                      )}
+                    >
+                      Previous buyers
+                    </button>
+                    <button
+                      onClick={() => setBatchAudienceSource("booked")}
+                      className={cn(
+                        "p-2 rounded-xl border-2 text-xs font-semibold text-center transition-all",
+                        batchAudienceSource === "booked"
+                          ? "border-green-600 bg-green-50 text-green-700"
+                          : "border-gray-200 bg-white text-gray-500 hover:border-green-300"
+                      )}
+                    >
+                      Booked / ordered this batch
+                    </button>
+                  </div>
+                  {selectedPlant && (
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">Ready date (optional, used in message)</Label>
+                      <Input type="date" value={batchReadyDate ? batchReadyDate.slice(0, 10) : ""} onChange={(e) => setBatchReadyDate(e.target.value)} />
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Customer list preview */}
               <div className="bg-gray-50 rounded-xl p-3 space-y-2">
@@ -308,11 +475,13 @@ export function CommsTab() {
                   <div className="flex items-center gap-2">
                     <Users className="h-4 w-4 text-gray-500" />
                     <span className="text-sm font-semibold text-gray-700">
-                      {loadingCustomers ? "Loading…" : `${targetCustomers.length} customer${targetCustomers.length !== 1 ? "s" : ""} — ${CUSTOMER_TYPE_LABEL}`}
+                      {audienceMode === "batch"
+                        ? (loadingBatchAudience ? "Loading…" : `${targetCustomers.length} customer${targetCustomers.length !== 1 ? "s" : ""}${selectedPlant ? ` — ${selectedPlant} (${batchAudienceSource === "previous_buyers" ? "previous buyers" : "booked/ordered"})` : ""}`)
+                        : (loadingCustomers ? "Loading…" : `${targetCustomers.length} customer${targetCustomers.length !== 1 ? "s" : ""} — ${CUSTOMER_TYPE_LABEL}`)}
                     </span>
                   </div>
                   <button
-                    onClick={loadCustomers}
+                    onClick={() => audienceMode === "batch" ? loadBatchAudience(selectedPlant, batchAudienceSource) : loadCustomers()}
                     className="text-gray-400 hover:text-gray-600"
                     title="Refresh"
                   >
@@ -320,10 +489,11 @@ export function CommsTab() {
                   </button>
                 </div>
 
-                {targetCustomers.length === 0 && !loadingCustomers ? (
+                {targetCustomers.length === 0 && !loadingCustomers && !loadingBatchAudience ? (
                   <p className="text-xs text-gray-400">
-                    No customers with phone numbers in this category.
-                    Add customers in the Customers tab first.
+                    {audienceMode === "batch"
+                      ? (selectedPlant ? "No matching customers found for this plant yet." : "Select a plant above to see matching customers.")
+                      : "No customers with phone numbers in this category. Add customers in the Customers tab first."}
                   </p>
                 ) : (
                   <div className="max-h-36 overflow-y-auto space-y-1">
@@ -371,46 +541,77 @@ export function CommsTab() {
               </div>
             </CardHeader>
             <CardContent className="px-4 pb-4 space-y-3">
-              {/* Template */}
-              <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-                {TEMPLATES.map(t => {
-                  const Icon = t.icon
-                  return (
-                    <button
-                      key={t.id}
-                      onClick={() => { setTemplate(t.id); setGeneratedMsg("") }}
-                      className={cn(
-                        "flex items-center gap-3 p-3 rounded-xl border-2 text-left transition-all",
-                        template === t.id
-                          ? "border-green-600 bg-green-50 text-green-700"
-                          : "border-gray-200 bg-white text-gray-500 hover:border-green-300"
-                      )}
-                    >
-                      <Icon className="h-5 w-5 shrink-0" />
-                      <span className="font-semibold text-sm">{t.label}</span>
-                    </button>
-                  )
-                })}
-              </div>
-
-              {/* Product list */}
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <Label className="text-sm font-semibold">Products / Details</Label>
-                  {batches.length > 0 && (
-                    <button onClick={autoFillProducts} className="text-xs text-green-600 hover:text-green-700 font-semibold underline">
-                      Auto-fill from inventory
-                    </button>
-                  )}
+              {audienceMode === "batch" ? (
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                  <button
+                    onClick={() => { setBatchTemplate("batch_ready"); setGeneratedMsg("") }}
+                    className={cn(
+                      "flex items-center gap-3 p-3 rounded-xl border-2 text-left transition-all",
+                      batchTemplate === "batch_ready"
+                        ? "border-green-600 bg-green-50 text-green-700"
+                        : "border-gray-200 bg-white text-gray-500 hover:border-green-300"
+                    )}
+                  >
+                    <CheckCircle className="h-5 w-5 shrink-0" />
+                    <span className="font-semibold text-sm">Batch Ready</span>
+                  </button>
+                  <button
+                    onClick={() => { setBatchTemplate("fully_booked"); setGeneratedMsg("") }}
+                    className={cn(
+                      "flex items-center gap-3 p-3 rounded-xl border-2 text-left transition-all",
+                      batchTemplate === "fully_booked"
+                        ? "border-green-600 bg-green-50 text-green-700"
+                        : "border-gray-200 bg-white text-gray-500 hover:border-green-300"
+                    )}
+                  >
+                    <AlertCircle className="h-5 w-5 shrink-0" />
+                    <span className="font-semibold text-sm">Fully Booked</span>
+                  </button>
                 </div>
-                <Textarea
-                  rows={5}
-                  placeholder={"e.g.\n• Tomatoes (F1) — 500 seedlings @ Ksh 10/seedling\n• Kale (Sukuma Wiki) — 1,000 seedlings @ Ksh 8/seedling"}
-                  value={productList}
-                  onChange={e => { setProductList(e.target.value); setGeneratedMsg("") }}
-                  className="font-mono text-sm"
-                />
-              </div>
+              ) : (
+                <>
+                  {/* Template */}
+                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                    {TEMPLATES.map(t => {
+                      const Icon = t.icon
+                      return (
+                        <button
+                          key={t.id}
+                          onClick={() => { setTemplate(t.id); setGeneratedMsg("") }}
+                          className={cn(
+                            "flex items-center gap-3 p-3 rounded-xl border-2 text-left transition-all",
+                            template === t.id
+                              ? "border-green-600 bg-green-50 text-green-700"
+                              : "border-gray-200 bg-white text-gray-500 hover:border-green-300"
+                          )}
+                        >
+                          <Icon className="h-5 w-5 shrink-0" />
+                          <span className="font-semibold text-sm">{t.label}</span>
+                        </button>
+                      )
+                    })}
+                  </div>
+
+                  {/* Product list */}
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-sm font-semibold">Products / Details</Label>
+                      {batches.length > 0 && (
+                        <button onClick={autoFillProducts} className="text-xs text-green-600 hover:text-green-700 font-semibold underline">
+                          Auto-fill from inventory
+                        </button>
+                      )}
+                    </div>
+                    <Textarea
+                      rows={5}
+                      placeholder={"e.g.\n• Tomatoes (F1) — 500 seedlings @ Ksh 10/seedling\n• Kale (Sukuma Wiki) — 1,000 seedlings @ Ksh 8/seedling"}
+                      value={productList}
+                      onChange={e => { setProductList(e.target.value); setGeneratedMsg("") }}
+                      className="font-mono text-sm"
+                    />
+                  </div>
+                </>
+              )}
 
               <Button onClick={handleGenerateMessage} className="w-full bg-green-600 hover:bg-green-700 text-white font-bold gap-2">
                 <MessageCircle className="h-4 w-4" /> Preview Message

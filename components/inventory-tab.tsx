@@ -19,6 +19,8 @@ import { exportToExcel, formatInventoryForExport } from "@/lib/excel-export"
 import { Download, Loader2, Plus, Edit, Trash2, Package, FileText, TrendingUp, ShoppingCart, Sprout } from "lucide-react"
 import { AddSachetForm } from "@/components/add-sachet-form"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { BatchBookingsTab } from "@/components/batch-bookings-tab"
+import { CalendarClock } from "lucide-react"
 
 export function InventoryTab() {
   const [inventory, setInventory] = useState<any[]>([])
@@ -311,6 +313,17 @@ export function InventoryTab() {
   const stagnantBatches = currentPlants.filter(isStagnant)
   const lowStockSellingBatches = currentPlants.filter(isLowStockSelling)
 
+  const READY_SOON_DAYS = 3
+  const isReadySoon = (item: any): boolean => {
+    if (isConsumable(item) || !item.expected_ready_date) return false
+    if (["ready", "selling", "sold_out"].includes(item.lifecycle_status)) return false
+    const daysUntil = Math.ceil((new Date(item.expected_ready_date).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+    return daysUntil <= READY_SOON_DAYS
+  }
+  const getDaysUntilReady = (item: any): number =>
+    Math.ceil((new Date(item.expected_ready_date).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+  const readySoonBatches = currentPlants.filter(isReadySoon)
+
 
   return (
     <div className="modern-page space-y-8">
@@ -342,7 +355,29 @@ export function InventoryTab() {
                 <strong>{lowStockSellingBatches.length}</strong> batch{lowStockSellingBatches.length !== 1 ? "es" : ""} running low on stock while selling
               </span>
             )}
+            {readySoonBatches.length > 0 && (
+              <span>
+                <strong>{readySoonBatches.length}</strong> batch{readySoonBatches.length !== 1 ? "es" : ""} nearing ready date
+              </span>
+            )}
           </div>
+          {readySoonBatches.length > 0 && (
+            <div className="flex flex-wrap gap-1.5 pt-1">
+              {readySoonBatches.slice(0, 8).map(b => {
+                const days = getDaysUntilReady(b)
+                return (
+                  <Badge key={b.id} variant="outline" className="text-xs bg-white border-amber-300 text-amber-800">
+                    {b.plant_name} · {days <= 0 ? "ready date passed" : days === 0 ? "ready today" : `ready in ${days}d`}
+                  </Badge>
+                )
+              })}
+              {readySoonBatches.length > 8 && (
+                <Badge variant="outline" className="text-xs bg-white border-amber-300 text-amber-800">
+                  +{readySoonBatches.length - 8} more
+                </Badge>
+              )}
+            </div>
+          )}
           {stagnantBatches.length > 0 && (
             <div className="flex flex-wrap gap-1.5 pt-1">
               {stagnantBatches.slice(0, 8).map(b => (
@@ -403,7 +438,7 @@ export function InventoryTab() {
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         {/* Tab Navigation */}
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-6">
-          <TabsList className="grid w-full max-w-lg grid-cols-3">
+          <TabsList className="grid w-full max-w-2xl grid-cols-4">
             <TabsTrigger value="plants" className="flex items-center gap-1 text-xs sm:text-sm">
               <Package className="h-3 w-3 sm:h-4 sm:w-4" />
               Seedlings ({filteredPlants.length})
@@ -415,6 +450,10 @@ export function InventoryTab() {
             <TabsTrigger value="sachets" className="flex items-center gap-1 text-xs sm:text-sm" onClick={() => { if (sachets.length === 0) fetchSachets() }}>
               <Sprout className="h-3 w-3 sm:h-4 sm:w-4" />
               Sachets ({sachets.length})
+            </TabsTrigger>
+            <TabsTrigger value="bookings" className="flex items-center gap-1 text-xs sm:text-sm">
+              <CalendarClock className="h-3 w-3 sm:h-4 sm:w-4" />
+              Bookings
             </TabsTrigger>
           </TabsList>
 
@@ -857,6 +896,20 @@ export function InventoryTab() {
               ))}
             </div>
           )}
+        </TabsContent>
+        {/* Bookings Tab */}
+        <TabsContent value="bookings" className="mt-0">
+          <BatchBookingsTab
+            batches={currentPlants.map((b: any) => ({
+              id: b.id,
+              plant_name: b.plant_name,
+              crop_type: b.crop_type,
+              quantity: b.quantity || 0,
+              lifecycle_status: b.lifecycle_status || "received",
+              expected_ready_date: b.expected_ready_date,
+            }))}
+            tableExists={tableExists}
+          />
         </TabsContent>
         {/* Sachets Tab */}
         <TabsContent value="sachets" className="mt-0">
