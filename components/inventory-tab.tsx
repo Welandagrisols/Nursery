@@ -16,7 +16,9 @@ import { useToast } from "@/components/ui/use-toast"
 import { demoInventory } from "@/components/demo-data"
 import { DemoModeBanner } from "@/components/demo-mode-banner"
 import { exportToExcel, formatInventoryForExport } from "@/lib/excel-export"
-import { Download, Loader2, Plus, Edit, Trash2, Package, FileText, TrendingUp, ShoppingCart, Sprout } from "lucide-react"
+import { Download, Loader2, Plus, Edit, Trash2, Package, FileText, TrendingUp, ShoppingCart, Sprout, DollarSign, CheckCircle2 } from "lucide-react"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
 import { AddSachetForm } from "@/components/add-sachet-form"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { BatchBookingsTab } from "@/components/batch-bookings-tab"
@@ -39,6 +41,11 @@ export function InventoryTab() {
   const [bookedByBatch, setBookedByBatch] = useState<Record<string, number>>({})
   const { toast } = useToast()
   const [statusFilter, setStatusFilter] = useState("all")
+  const [costBatch, setCostBatch] = useState<any>(null)
+  const [costForm, setCostForm] = useState({ cost_type: "Labour", amount: "", description: "", date: new Date().toISOString().split("T")[0] })
+  const [costSaving, setCostSaving] = useState(false)
+  const [costHistory, setCostHistory] = useState<any[]>([])
+  const [costHistoryLoading, setCostHistoryLoading] = useState(false)
   const { user } = useAuth()
 
   useEffect(() => {
@@ -143,6 +150,55 @@ export function InventoryTab() {
       toast({ title: "Update failed", description: err.message, variant: "destructive" })
     }
   }
+
+  async function openCostDialog(item: any) {
+    setCostBatch(item)
+    setCostForm({ cost_type: "Labour", amount: "", description: "", date: new Date().toISOString().split("T")[0] })
+    setCostHistory([])
+    setCostHistoryLoading(true)
+    try {
+      const { data } = await (supabase.from("vnms_costs") as any)
+        .select("id, cost_type, amount, description, date")
+        .eq("batch_id", item.id)
+        .order("date", { ascending: false })
+        .limit(10)
+      setCostHistory(data || [])
+    } catch { /* fail silently */ }
+    setCostHistoryLoading(false)
+  }
+
+  async function logCost() {
+    if (!costBatch || !costForm.amount || Number(costForm.amount) <= 0) {
+      toast({ title: "Enter a valid amount", variant: "destructive" })
+      return
+    }
+    setCostSaving(true)
+    try {
+      const { error } = await (supabase.from("vnms_costs") as any).insert({
+        batch_id: costBatch.id,
+        cost_type: costForm.cost_type,
+        amount: Number(costForm.amount),
+        description: costForm.description || null,
+        date: costForm.date,
+        recorded_by: user?.email || null,
+      })
+      if (error) throw error
+      toast({ title: "Cost logged", description: `Ksh ${Number(costForm.amount).toLocaleString()} (${costForm.cost_type}) added to ${costBatch.plant_name}` })
+      setCostForm(f => ({ ...f, amount: "", description: "" }))
+      // Refresh history
+      const { data } = await (supabase.from("vnms_costs") as any)
+        .select("id, cost_type, amount, description, date")
+        .eq("batch_id", costBatch.id)
+        .order("date", { ascending: false })
+        .limit(10)
+      setCostHistory(data || [])
+    } catch (err: any) {
+      toast({ title: "Failed to log cost", description: err.message, variant: "destructive" })
+    }
+    setCostSaving(false)
+  }
+
+  const COST_TYPES = ["Labour", "Soil", "Trays", "Seeds / Sachets", "Fertilizer", "Pesticide", "Water", "Transport", "Other"]
 
   const STAGE_STALL_THRESHOLDS: Record<string, number> = {
     received: 7,
@@ -803,6 +859,18 @@ export function InventoryTab() {
                           </div>
                         </div>
                       )}
+
+                      {/* Log Cost Button */}
+                      {!isDemoMode && tableExists && (
+                        <div className="pt-2 border-t">
+                          <button
+                            onClick={() => openCostDialog(item)}
+                            className="w-full flex items-center justify-center gap-1.5 text-xs py-1.5 rounded border border-dashed border-amber-400 text-amber-700 bg-amber-50 hover:bg-amber-100 transition-colors font-medium"
+                          >
+                            <DollarSign className="h-3 w-3" /> Log Input Cost
+                          </button>
+                        </div>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
@@ -1036,6 +1104,100 @@ export function InventoryTab() {
               }}
               onCancel={() => setEditItem(null)}
             />
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Log Cost Dialog */}
+      {costBatch && (
+        <Dialog open={!!costBatch} onOpenChange={(open) => { if (!open) setCostBatch(null) }}>
+          <DialogContent className="max-w-sm max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2 text-base">
+                <DollarSign className="h-4 w-4 text-amber-600" />
+                Log Input Cost
+              </DialogTitle>
+              <p className="text-sm text-muted-foreground truncate">{costBatch.plant_name} · {costBatch.batch_code || costBatch.sku}</p>
+            </DialogHeader>
+
+            <div className="space-y-3 pt-1">
+              {/* Cost type */}
+              <div className="space-y-1">
+                <Label className="text-xs font-semibold">Cost Type</Label>
+                <Select value={costForm.cost_type} onValueChange={(v) => setCostForm(f => ({ ...f, cost_type: v }))}>
+                  <SelectTrigger className="h-9 text-sm">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {COST_TYPES.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Amount */}
+              <div className="space-y-1">
+                <Label className="text-xs font-semibold">Amount (Ksh)</Label>
+                <Input
+                  type="number"
+                  min="1"
+                  placeholder="e.g. 1500"
+                  value={costForm.amount}
+                  onChange={(e) => setCostForm(f => ({ ...f, amount: e.target.value }))}
+                  className="h-9 text-sm"
+                />
+              </div>
+
+              {/* Date */}
+              <div className="space-y-1">
+                <Label className="text-xs font-semibold">Date</Label>
+                <Input
+                  type="date"
+                  value={costForm.date}
+                  onChange={(e) => setCostForm(f => ({ ...f, date: e.target.value }))}
+                  className="h-9 text-sm"
+                />
+              </div>
+
+              {/* Description */}
+              <div className="space-y-1">
+                <Label className="text-xs font-semibold">Description <span className="font-normal text-muted-foreground">(optional)</span></Label>
+                <Textarea
+                  placeholder="e.g. 40 bags potting soil at Ksh 350 each"
+                  value={costForm.description}
+                  onChange={(e) => setCostForm(f => ({ ...f, description: e.target.value }))}
+                  rows={2}
+                  className="text-sm resize-none"
+                />
+              </div>
+
+              <Button onClick={logCost} disabled={costSaving || !costForm.amount} className="w-full bg-amber-600 hover:bg-amber-700 text-white">
+                {costSaving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <CheckCircle2 className="h-4 w-4 mr-2" />}
+                Save Cost Entry
+              </Button>
+            </div>
+
+            {/* Recent cost history for this batch */}
+            <div className="pt-3 border-t mt-1">
+              <p className="text-xs font-semibold text-muted-foreground mb-2">Recent entries for this batch</p>
+              {costHistoryLoading ? (
+                <p className="text-xs text-muted-foreground text-center py-2">Loading…</p>
+              ) : costHistory.length === 0 ? (
+                <p className="text-xs text-muted-foreground text-center py-2">No cost entries yet</p>
+              ) : (
+                <div className="space-y-1.5 max-h-44 overflow-y-auto">
+                  {costHistory.map((c: any) => (
+                    <div key={c.id} className="flex items-center justify-between text-xs gap-2 bg-gray-50 rounded px-2 py-1.5">
+                      <div className="min-w-0">
+                        <span className="font-semibold text-amber-700">{c.cost_type}</span>
+                        {c.description && <span className="text-muted-foreground ml-1 truncate"> · {c.description}</span>}
+                        <p className="text-muted-foreground text-[10px]">{c.date}</p>
+                      </div>
+                      <span className="font-bold text-red-600 shrink-0">Ksh {Number(c.amount).toLocaleString()}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </DialogContent>
         </Dialog>
       )}
