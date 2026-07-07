@@ -36,6 +36,7 @@ export function InventoryTab() {
   const [addSachetDialogOpen, setAddSachetDialogOpen] = useState(false)
   const [sachets, setSachets] = useState<any[]>([])
   const [sachetsLoading, setSachetsLoading] = useState(false)
+  const [bookedByBatch, setBookedByBatch] = useState<Record<string, number>>({})
   const { toast } = useToast()
   const [statusFilter, setStatusFilter] = useState("all")
   const { user } = useAuth()
@@ -58,6 +59,7 @@ export function InventoryTab() {
       }
 
       fetchSachets()
+      fetchBookings()
       fetchInventory().catch((error) => {
         console.log("Falling back to demo mode due to:", error.message)
         toast({
@@ -110,6 +112,22 @@ export function InventoryTab() {
     } finally {
       setSachetsLoading(false)
     }
+  }
+
+  async function fetchBookings() {
+    if (isDemoMode) return
+    try {
+      const { data, error } = await (supabase.from("vnms_batch_bookings") as any)
+        .select("batch_id, plant_name, quantity_booked, status")
+        .in("status", ["pending", "confirmed"])
+      if (error) return // table may not exist yet — fail silently
+      const map: Record<string, number> = {}
+      for (const row of (data || [])) {
+        if (!row.batch_id) continue
+        map[row.batch_id] = (map[row.batch_id] || 0) + (row.quantity_booked || 0)
+      }
+      setBookedByBatch(map)
+    } catch {}
   }
 
   async function updateLifecycleStatus(id: string, status: string) {
@@ -313,6 +331,13 @@ export function InventoryTab() {
   const stagnantBatches = currentPlants.filter(isStagnant)
   const lowStockSellingBatches = currentPlants.filter(isLowStockSelling)
 
+  const overbookedBatches = currentPlants.filter(item => {
+    const booked = bookedByBatch[item.id]
+    if (!booked) return false
+    const avail = item.available_stock ?? item.quantity ?? 0
+    return booked > avail
+  })
+
   const READY_SOON_DAYS = 3
   const isReadySoon = (item: any): boolean => {
     if (isConsumable(item) || !item.expected_ready_date) return false
@@ -338,13 +363,18 @@ export function InventoryTab() {
       </div>
 
       {/* Needs Attention Banner */}
-      {(stagnantBatches.length > 0 || lowStockSellingBatches.length > 0) && (
+      {(stagnantBatches.length > 0 || lowStockSellingBatches.length > 0 || overbookedBatches.length > 0) && (
         <div className="rounded-lg border border-amber-300 bg-amber-50 p-4 space-y-2">
           <div className="flex items-center gap-2 text-amber-800 font-semibold text-sm">
             <TrendingUp className="h-4 w-4 rotate-180" />
             Needs Attention
           </div>
           <div className="flex flex-wrap gap-x-6 gap-y-1 text-xs text-amber-800">
+            {overbookedBatches.length > 0 && (
+              <span className="font-semibold text-red-700">
+                🔴 <strong>{overbookedBatches.length}</strong> batch{overbookedBatches.length !== 1 ? "es" : ""} overcommitted — bookings exceed available stock
+              </span>
+            )}
             {stagnantBatches.length > 0 && (
               <span>
                 <strong>{stagnantBatches.length}</strong> batch{stagnantBatches.length !== 1 ? "es" : ""} stuck in their current stage longer than expected
@@ -361,6 +391,20 @@ export function InventoryTab() {
               </span>
             )}
           </div>
+          {overbookedBatches.length > 0 && (
+            <div className="flex flex-wrap gap-1.5 pt-1">
+              {overbookedBatches.slice(0, 8).map(b => {
+                const booked = bookedByBatch[b.id] || 0
+                const avail = b.available_stock ?? b.quantity ?? 0
+                const shortfall = booked - avail
+                return (
+                  <Badge key={b.id} variant="outline" className="text-xs bg-red-50 border-red-300 text-red-800">
+                    {b.plant_name} · {booked} booked / {avail} avail · short {shortfall}
+                  </Badge>
+                )
+              })}
+            </div>
+          )}
           {readySoonBatches.length > 0 && (
             <div className="flex flex-wrap gap-1.5 pt-1">
               {readySoonBatches.slice(0, 8).map(b => {

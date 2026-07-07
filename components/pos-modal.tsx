@@ -91,6 +91,15 @@ export function POSModal({ open, onClose, onSaleComplete }: Props) {
   const stockAfter = availableStock - qty
   const receiptNumber = generateReceiptNumber()
 
+  // Overbooking risk: total pending/confirmed bookings for selected batch vs available stock
+  const totalBookedForBatch = batchId
+    ? bookings
+        .filter(b => b.batch_id === batchId || (!b.batch_id && selectedBatch && b.plant_name.toLowerCase() === selectedBatch.plant_name.toLowerCase()))
+        .reduce((sum, b) => sum + (b.quantity_booked || 0), 0)
+    : 0
+  const unbookedStock = availableStock - totalBookedForBatch
+  const overbookingRisk = selectedBatch && totalBookedForBatch > 0 && availableStock > 0
+
   useEffect(() => {
     if (open) {
       fetchData()
@@ -427,13 +436,30 @@ ${nurseryTagline ? `<div class="center small" style="font-style:italic; margin-t
                 <SelectContent>
                   {batches.length === 0
                     ? <SelectItem value="__none__" disabled>No batches ready for sale</SelectItem>
-                    : batches.map(b => (
-                      <SelectItem key={b.id} value={b.id}>
-                        {b.plant_name} {b.batch_code ? `(${b.batch_code})` : ''} — {b.available_stock ?? b.quantity} avail.
-                      </SelectItem>
-                    ))}
+                    : batches.map(b => {
+                        const booked = bookings
+                          .filter(bk => bk.batch_id === b.id || (!bk.batch_id && bk.plant_name.toLowerCase() === b.plant_name.toLowerCase()))
+                          .reduce((s, bk) => s + (bk.quantity_booked || 0), 0)
+                        const avail = b.available_stock ?? b.quantity
+                        return (
+                          <SelectItem key={b.id} value={b.id}>
+                            {b.plant_name} {b.batch_code ? `(${b.batch_code})` : ''} — {avail} avail.{booked > 0 ? ` · ${booked} booked` : ""}
+                          </SelectItem>
+                        )
+                      })}
                 </SelectContent>
               </Select>
+              {overbookingRisk && (
+                <div className={`mt-1.5 rounded-lg px-3 py-2 text-xs flex items-start gap-2 ${unbookedStock < 0 ? "bg-red-50 border border-red-200 text-red-800" : "bg-amber-50 border border-amber-200 text-amber-800"}`}>
+                  <span className="shrink-0 mt-0.5">{unbookedStock < 0 ? "🔴" : "⚠️"}</span>
+                  <span>
+                    <strong>{totalBookedForBatch} seedlings</strong> are reserved by customer bookings.{" "}
+                    {unbookedStock < 0
+                      ? `Stock is overcommitted by ${Math.abs(unbookedStock)} — fulfil or cancel bookings before selling to walk-ins.`
+                      : `Only ${unbookedStock} unbooked seedlings remain. Selling to a walk-in may leave booked customers short.`}
+                  </span>
+                </div>
+              )}
             </div>
 
             {/* Quantity */}
