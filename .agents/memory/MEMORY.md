@@ -1,1 +1,2 @@
 - [Demo Mode Safety](demo-mode-safety.md) — Supabase placeholder URL must never throw; auth loading state must initialize based on isDemoMode to prevent stuck screens.
+- [VNMS Feature Patterns](vnms-feature-patterns.md) — Durable conventions for vnms_ table queries, graceful table-missing handling, and UI patterns used across bookings/comms/creditors.

@@ -10,9 +10,23 @@ import { Label } from "@/components/ui/label"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useToast } from "@/components/ui/use-toast"
-import { CreditCard, CheckCircle, AlertTriangle, TrendingDown, User, Phone, MessageCircle } from "lucide-react"
+import { CreditCard, CheckCircle, AlertTriangle, TrendingDown, User, Phone, MessageCircle, List, Users, Settings2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useNursery } from "@/contexts/nursery-context"
+
+const OVERDUE_KEY = "vnms_overdue_days"
+const DEFAULT_OVERDUE_DAYS = 14
+
+interface CustomerAccount {
+  customerId: string
+  customerName: string
+  contact: string
+  sales: CreditSale[]
+  totalBalance: number
+  oldestSaleDate: string
+  daysOutstanding: number
+  overdueLevel: "none" | "warning" | "overdue"
+}
 
 interface CreditSale {
   id: string
@@ -48,6 +62,13 @@ export function CreditorsTab() {
   const [filter, setFilter] = useState<"all" | "outstanding" | "overdue" | "paid">("outstanding")
   const [bulkOpen, setBulkOpen] = useState(false)
   const [sentIds, setSentIds] = useState<Set<string>>(new Set())
+  const [viewMode, setViewMode] = useState<"sales" | "customers">("customers")
+  const [overdueDays, setOverdueDays] = useState<number>(() => {
+    if (typeof window === "undefined") return DEFAULT_OVERDUE_DAYS
+    return Number(localStorage.getItem(OVERDUE_KEY)) || DEFAULT_OVERDUE_DAYS
+  })
+  const [settingsOpen, setSettingsOpen] = useState(false)
+  const [overdueDaysInput, setOverdueDaysInput] = useState(String(overdueDays))
 
   useEffect(() => { fetchCreditSales() }, [])
 
@@ -89,13 +110,87 @@ export function CreditorsTab() {
   const getOverdueLevel = (s: CreditSale): "none" | "warning" | "overdue" => {
     if (isPaid(s)) return "none"
     const days = getDaysOutstanding(s)
-    if (days >= 14) return "overdue"
-    if (days >= 7) return "warning"
+    if (days >= overdueDays) return "overdue"
+    if (days >= Math.round(overdueDays / 2)) return "warning"
+    return "none"
+  }
+
+  const getAccountOverdueLevel = (days: number): "none" | "warning" | "overdue" => {
+    if (days >= overdueDays) return "overdue"
+    if (days >= Math.round(overdueDays / 2)) return "warning"
     return "none"
   }
 
   const getRemainingBalance = (s: CreditSale): number =>
     Math.max(0, s.total_amount - getAmountPaid(s))
+
+  const saveOverdueDays = () => {
+    const val = Math.max(1, parseInt(overdueDaysInput, 10) || DEFAULT_OVERDUE_DAYS)
+    setOverdueDays(val)
+    setOverdueDaysInput(String(val))
+    localStorage.setItem(OVERDUE_KEY, String(val))
+    setSettingsOpen(false)
+    toast({ title: "Saved", description: `Overdue threshold set to ${val} days.` })
+  }
+
+  // Per-customer account rollup (unpaid/partial only)
+  const customerAccounts: CustomerAccount[] = (() => {
+    const unpaidSales = sales.filter(s => !isPaid(s))
+    const map: Record<string, CreditSale[]> = {}
+    for (const s of unpaidSales) {
+      const key = s.customer?.id || `walkin-${s.id}`
+      if (!map[key]) map[key] = []
+      map[key].push(s)
+    }
+    return Object.values(map)
+      .map(group => {
+        const oldest = group.reduce((a, b) => a.sale_date < b.sale_date ? a : b)
+        const daysOut = Math.floor((Date.now() - new Date(oldest.sale_date).getTime()) / (1000 * 60 * 60 * 24))
+        const totalBal = group.reduce((sum, s) => sum + getRemainingBalance(s), 0)
+        return {
+          customerId: oldest.customer?.id || "walkin",
+          customerName: oldest.customer?.name || "Walk-in Customer",
+          contact: oldest.customer?.contact || "",
+          sales: group,
+          totalBalance: totalBal,
+          oldestSaleDate: oldest.sale_date,
+          daysOutstanding: daysOut,
+          overdueLevel: getAccountOverdueLevel(daysOut),
+        } as CustomerAccount
+      })
+      .filter(a => a.totalBalance > 0)
+      .sort((a, b) => b.daysOutstanding - a.daysOutstanding)
+  })()
+
+  const buildAccountReminderMessage = (account: CustomerAccount): string => {
+    const lines: string[] = [
+      `Hi ${account.customerName}, this is a friendly reminder from *${nurseryName}*.`,
+      ``,
+      `📋 *Outstanding Balance Summary*`,
+      ``,
+    ]
+    for (const s of account.sales) {
+      const rem = getRemainingBalance(s)
+      if (rem <= 0) continue
+      const dateStr = new Date(s.sale_date).toLocaleDateString("en-KE", { day: "numeric", month: "short", year: "numeric" })
+      lines.push(`• ${s.plant_name || "Seedlings"} (${s.quantity.toLocaleString()} units) — *Ksh ${rem.toLocaleString()}* · purchased ${dateStr}`)
+    }
+    lines.push(``)
+    lines.push(`💰 *Total due: Ksh ${account.totalBalance.toLocaleString()}*`)
+    lines.push(``)
+    lines.push(`Kindly clear this balance at your earliest convenience. Thank you!`)
+    if (nurseryPhone) lines.push(`📞 ${nurseryPhone}`)
+    return lines.join("\n")
+  }
+
+  const sendAccountReminder = (account: CustomerAccount) => {
+    const contact = account.contact.replace(/\D/g, "")
+    if (!contact) {
+      toast({ title: "No phone number", description: "This customer has no phone number on file.", variant: "destructive" })
+      return
+    }
+    window.open(`https://wa.me/${contact}?text=${encodeURIComponent(buildAccountReminderMessage(account))}`, "_blank")
+  }
 
   const openPayDialog = (sale: CreditSale) => {
     const remaining = getRemainingBalance(sale)
@@ -210,43 +305,65 @@ export function CreditorsTab() {
   return (
     <div className="space-y-6">
       <div className="modern-header">
-        <h1 className="modern-title">Creditors</h1>
-        <p className="modern-subtitle">Track and collect outstanding credit sales</p>
+        <div className="flex items-start justify-between gap-2">
+          <div>
+            <h1 className="modern-title">Creditors</h1>
+            <p className="modern-subtitle">Track and collect outstanding credit balances</p>
+          </div>
+          <button
+            onClick={() => { setOverdueDaysInput(String(overdueDays)); setSettingsOpen(true) }}
+            className="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-500 shrink-0 mt-1"
+            title="Overdue settings"
+          >
+            <Settings2 className="h-4 w-4" />
+          </button>
+        </div>
       </div>
 
       {/* Summary cards */}
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-3 gap-3">
         <Card className="border-red-200 bg-red-50">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2 mb-1">
-              <AlertTriangle className="h-4 w-4 text-red-500" />
-              <span className="text-xs font-semibold text-red-600 uppercase">Outstanding</span>
+          <CardContent className="p-3">
+            <div className="flex items-center gap-1.5 mb-1">
+              <AlertTriangle className="h-3.5 w-3.5 text-red-500" />
+              <span className="text-[10px] font-semibold text-red-600 uppercase">Outstanding</span>
             </div>
-            <p className="text-2xl font-black text-red-700">Ksh {totalOutstanding.toLocaleString()}</p>
-            <p className="text-xs text-red-500 mt-0.5">{outstanding.length + partiallyPaid.length} unpaid {outstanding.length + partiallyPaid.length === 1 ? "sale" : "sales"}{partiallyPaid.length > 0 ? ` (${partiallyPaid.length} partial)` : ""}</p>
+            <p className="text-xl font-black text-red-700">Ksh {totalOutstanding.toLocaleString()}</p>
+            <p className="text-[10px] text-red-500 mt-0.5">{outstanding.length + partiallyPaid.length} unpaid</p>
+          </CardContent>
+        </Card>
+        <Card className={cn("border-orange-200 bg-orange-50", customerAccounts.filter(a => a.overdueLevel === "overdue").length === 0 && "opacity-40")}>
+          <CardContent className="p-3">
+            <div className="flex items-center gap-1.5 mb-1">
+              <AlertTriangle className="h-3.5 w-3.5 text-orange-500" />
+              <span className="text-[10px] font-semibold text-orange-600 uppercase">Overdue</span>
+            </div>
+            <p className="text-xl font-black text-orange-700">{customerAccounts.filter(a => a.overdueLevel === "overdue").length}</p>
+            <p className="text-[10px] text-orange-500 mt-0.5">{overdueDays}+ day customers</p>
           </CardContent>
         </Card>
         <Card className="border-green-200 bg-green-50">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2 mb-1">
-              <CheckCircle className="h-4 w-4 text-green-600" />
-              <span className="text-xs font-semibold text-green-700 uppercase">Collected</span>
+          <CardContent className="p-3">
+            <div className="flex items-center gap-1.5 mb-1">
+              <CheckCircle className="h-3.5 w-3.5 text-green-600" />
+              <span className="text-[10px] font-semibold text-green-700 uppercase">Collected</span>
             </div>
-            <p className="text-2xl font-black text-green-700">Ksh {totalCollected.toLocaleString()}</p>
-            <p className="text-xs text-green-600 mt-0.5">{paid.length} paid {paid.length === 1 ? "sale" : "sales"}</p>
+            <p className="text-xl font-black text-green-700">Ksh {totalCollected.toLocaleString()}</p>
+            <p className="text-[10px] text-green-600 mt-0.5">{paid.length} paid</p>
           </CardContent>
         </Card>
       </div>
 
-      {overdueSales.length > 0 && (
+      {customerAccounts.filter(a => a.overdueLevel === "overdue").length > 0 && (
         <div className="w-full flex items-center gap-2 bg-red-100 border border-red-300 rounded-xl p-3">
           <button
-            onClick={() => setFilter("overdue")}
+            onClick={() => { setViewMode("customers") }}
             className="flex items-center gap-2 flex-1 min-w-0 text-left"
           >
             <AlertTriangle className="h-4 w-4 text-red-600 shrink-0 animate-pulse" />
             <p className="text-sm text-red-800 font-semibold">
-              {overdueSales.length} {overdueSales.length === 1 ? "sale is" : "sales are"} 14+ days overdue
+              {customerAccounts.filter(a => a.overdueLevel === "overdue").length}{" "}
+              {customerAccounts.filter(a => a.overdueLevel === "overdue").length === 1 ? "customer has" : "customers have"} balances {overdueDays}+ days old
             </p>
           </button>
           <Button
@@ -259,155 +376,251 @@ export function CreditorsTab() {
         </div>
       )}
 
-      {/* Filter */}
-      <div className="flex gap-2 flex-wrap">
-        {(["outstanding","overdue","all","paid"] as const).map(f => (
-          <button
-            key={f}
-            onClick={() => setFilter(f)}
-            className={cn(
-              "px-3 py-1.5 rounded-full text-sm font-semibold transition-all flex items-center gap-1",
-              filter === f
-                ? "bg-green-600 text-white"
-                : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-            )}
-          >
-            {f === "outstanding" ? "Outstanding" : f === "overdue" ? "Overdue" : f === "paid" ? "Paid" : "All"}
-            {f === "overdue" && overdueSales.length > 0 && (
-              <span className={cn("text-xs rounded-full px-1.5", filter === f ? "bg-white/20" : "bg-red-500 text-white")}>
-                {overdueSales.length}
-              </span>
-            )}
-          </button>
-        ))}
+      {/* View toggle */}
+      <div className="flex items-center gap-2">
+        <button
+          onClick={() => setViewMode("customers")}
+          className={cn(
+            "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-semibold transition-all",
+            viewMode === "customers" ? "bg-green-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+          )}
+        >
+          <Users className="h-3.5 w-3.5" /> By Customer
+        </button>
+        <button
+          onClick={() => setViewMode("sales")}
+          className={cn(
+            "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-semibold transition-all",
+            viewMode === "sales" ? "bg-green-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+          )}
+        >
+          <List className="h-3.5 w-3.5" /> By Sale
+        </button>
       </div>
 
-      {/* Sales list */}
       {loading ? (
         <p className="text-center text-gray-400 py-10">Loading credit sales...</p>
-      ) : sortedFiltered.length === 0 ? (
-        <Card className="border-dashed">
-          <CardContent className="text-center py-12">
-            <CreditCard className="h-10 w-10 mx-auto mb-3 text-gray-300" />
-            <p className="text-gray-500 font-medium">
-              {filter === "outstanding" ? "No outstanding credit sales" : filter === "overdue" ? "No overdue credit sales" : "No credit sales found"}
-            </p>
-            <p className="text-gray-400 text-sm mt-1">
-              Credit sales appear here when payment method is set to "Credit" in the POS.
-            </p>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="space-y-3">
-          {sortedFiltered.map(sale => {
-            const paid_ = isPaid(sale)
-            const overdueLevel = getOverdueLevel(sale)
-            const daysOutstanding = getDaysOutstanding(sale)
-            return (
-              <Card key={sale.id} className={cn(
+      ) : viewMode === "customers" ? (
+        /* ── BY CUSTOMER VIEW ── */
+        customerAccounts.length === 0 ? (
+          <Card className="border-dashed">
+            <CardContent className="text-center py-12">
+              <Users className="h-10 w-10 mx-auto mb-3 text-gray-300" />
+              <p className="text-gray-500 font-medium">No outstanding balances</p>
+              <p className="text-gray-400 text-sm mt-1">All credit customers are fully settled.</p>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="space-y-3">
+            {customerAccounts.map(account => (
+              <Card key={account.customerId} className={cn(
                 "transition-all",
-                paid_ && "opacity-70",
-                overdueLevel === "overdue" && "border-red-400 bg-red-50/40",
-                overdueLevel === "warning" && "border-amber-300 bg-amber-50/40"
+                account.overdueLevel === "overdue" && "border-red-400 bg-red-50/40",
+                account.overdueLevel === "warning" && "border-amber-300 bg-amber-50/40"
               )}>
                 <CardContent className="p-4">
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex-1 min-w-0">
-                      {/* Customer */}
-                      <div className="flex items-center gap-2 mb-1.5">
+                      <div className="flex items-center gap-2 mb-1">
                         <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center shrink-0">
                           <User className="h-4 w-4 text-gray-500" />
                         </div>
-                        <div>
-                          <p className="font-bold text-gray-800 leading-tight">
-                            {sale.customer?.name ?? "Walk-in Customer"}
-                          </p>
-                          {sale.customer?.contact && (
+                        <div className="min-w-0">
+                          <p className="font-bold text-gray-800 leading-tight truncate">{account.customerName}</p>
+                          {account.contact && (
                             <a
-                              href={`https://wa.me/${sale.customer.contact.replace(/\D/g,"")}`}
-                              target="_blank"
-                              rel="noreferrer"
+                              href={`https://wa.me/${account.contact.replace(/\D/g,"")}`}
+                              target="_blank" rel="noreferrer"
                               className="text-xs text-green-600 hover:underline flex items-center gap-1"
                             >
-                              <Phone className="h-2.5 w-2.5" />
-                              {sale.customer.contact}
+                              <Phone className="h-2.5 w-2.5" />{account.contact}
                             </a>
                           )}
                         </div>
                       </div>
-
-                      {/* Product & date */}
-                      <p className="text-sm text-gray-600">
-                        {sale.plant_name || sale.batch_code || "Seedlings"} — {sale.quantity.toLocaleString()} units
-                      </p>
-                      <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
-                        <p className="text-xs text-gray-400">
-                          {new Date(sale.sale_date).toLocaleDateString("en-KE", { day: "numeric", month: "short", year: "numeric" })}
-                        </p>
-                        {overdueLevel === "overdue" && (
+                      {/* Individual sales breakdown */}
+                      <div className="mt-2 space-y-0.5 pl-2 border-l-2 border-gray-200">
+                        {account.sales.map(s => (
+                          <div key={s.id} className="flex items-center justify-between gap-2 text-xs text-gray-500">
+                            <span className="truncate">{s.plant_name || "Seedlings"} × {s.quantity.toLocaleString()}</span>
+                            <span className="shrink-0 font-semibold text-gray-700">Ksh {getRemainingBalance(s).toLocaleString()}</span>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="flex items-center gap-2 mt-2 flex-wrap">
+                        <span className="text-xs text-gray-400">
+                          Oldest: {new Date(account.oldestSaleDate).toLocaleDateString("en-KE", { day: "numeric", month: "short", year: "numeric" })}
+                        </span>
+                        {account.overdueLevel === "overdue" && (
                           <Badge className="bg-red-600 text-white border-red-600 text-[10px] px-1.5 py-0 h-4">
-                            {daysOutstanding}d overdue
+                            {account.daysOutstanding}d — overdue
                           </Badge>
                         )}
-                        {overdueLevel === "warning" && (
+                        {account.overdueLevel === "warning" && (
                           <Badge className="bg-amber-100 text-amber-700 border-amber-300 text-[10px] px-1.5 py-0 h-4">
-                            {daysOutstanding}d — due soon
+                            {account.daysOutstanding}d — due soon
+                          </Badge>
+                        )}
+                        {account.overdueLevel === "none" && (
+                          <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 text-gray-400">
+                            {account.daysOutstanding}d outstanding
+                          </Badge>
+                        )}
+                        {account.sales.length > 1 && (
+                          <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 text-gray-400">
+                            {account.sales.length} invoices
                           </Badge>
                         )}
                       </div>
-                      {sale.notes && (
-                        <p className="text-xs text-gray-400 mt-1 italic">{sale.notes}</p>
-                      )}
                     </div>
-
                     <div className="text-right shrink-0 space-y-2">
-                      {isPartial(sale) ? (
-                        <>
-                          <p className="text-xl font-black text-orange-600">
-                            Ksh {getRemainingBalance(sale).toLocaleString()}
-                          </p>
-                          <p className="text-xs text-gray-400">of Ksh {sale.total_amount.toLocaleString()}</p>
-                          <Badge className="bg-orange-100 text-orange-700 border-orange-200 block text-center">
-                            Partial
-                          </Badge>
-                        </>
-                      ) : (
-                        <p className={cn("text-xl font-black", paid_ ? "text-green-700" : "text-red-600")}>
-                          Ksh {sale.total_amount.toLocaleString()}
-                        </p>
-                      )}
-                      {paid_ ? (
-                        <Badge className="bg-green-100 text-green-700 border-green-200">
-                          <CheckCircle className="h-3 w-3 mr-1" /> Paid
-                        </Badge>
-                      ) : (
-                        <div className="flex flex-col gap-1.5 items-end">
+                      <p className={cn("text-xl font-black", account.overdueLevel === "overdue" ? "text-red-600" : "text-orange-600")}>
+                        Ksh {account.totalBalance.toLocaleString()}
+                      </p>
+                      <div className="flex flex-col gap-1.5 items-end">
+                        <Button
+                          size="sm"
+                          onClick={() => openPayDialog(account.sales[account.sales.length - 1])}
+                          className="bg-green-600 hover:bg-green-700 text-white text-xs px-3 h-7"
+                        >
+                          Record Payment
+                        </Button>
+                        {account.contact && (
                           <Button
                             size="sm"
-                            onClick={() => openPayDialog(sale)}
-                            className="bg-green-600 hover:bg-green-700 text-white text-xs px-3 h-7"
+                            variant="outline"
+                            onClick={() => sendAccountReminder(account)}
+                            className="text-xs px-3 h-7 border-green-300 text-green-700 hover:bg-green-50"
                           >
-                            {isPartial(sale) ? "Collect More" : "Record Payment"}
+                            <MessageCircle className="h-3 w-3 mr-1" /> Remind
                           </Button>
-                          {sale.customer?.contact && (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => sendReminder(sale)}
-                              className="text-xs px-3 h-7 border-green-300 text-green-700 hover:bg-green-50"
-                            >
-                              <MessageCircle className="h-3 w-3 mr-1" /> Remind
-                            </Button>
-                          )}
-                        </div>
-                      )}
+                        )}
+                      </div>
                     </div>
                   </div>
                 </CardContent>
               </Card>
-            )
-          })}
-        </div>
+            ))}
+          </div>
+        )
+      ) : (
+        /* ── BY SALE VIEW (existing) ── */
+        <>
+          <div className="flex gap-2 flex-wrap">
+            {(["outstanding","overdue","all","paid"] as const).map(f => (
+              <button
+                key={f}
+                onClick={() => setFilter(f)}
+                className={cn(
+                  "px-3 py-1.5 rounded-full text-sm font-semibold transition-all flex items-center gap-1",
+                  filter === f
+                    ? "bg-green-600 text-white"
+                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                )}
+              >
+                {f === "outstanding" ? "Outstanding" : f === "overdue" ? "Overdue" : f === "paid" ? "Paid" : "All"}
+                {f === "overdue" && overdueSales.length > 0 && (
+                  <span className={cn("text-xs rounded-full px-1.5", filter === f ? "bg-white/20" : "bg-red-500 text-white")}>
+                    {overdueSales.length}
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
+
+          {sortedFiltered.length === 0 ? (
+            <Card className="border-dashed">
+              <CardContent className="text-center py-12">
+                <CreditCard className="h-10 w-10 mx-auto mb-3 text-gray-300" />
+                <p className="text-gray-500 font-medium">
+                  {filter === "outstanding" ? "No outstanding credit sales" : filter === "overdue" ? "No overdue credit sales" : "No credit sales found"}
+                </p>
+                <p className="text-gray-400 text-sm mt-1">
+                  Credit sales appear here when payment method is set to "Credit" in the POS.
+                </p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="space-y-3">
+              {sortedFiltered.map(sale => {
+                const paid_ = isPaid(sale)
+                const overdueLevel = getOverdueLevel(sale)
+                const daysOutstanding = getDaysOutstanding(sale)
+                return (
+                  <Card key={sale.id} className={cn(
+                    "transition-all",
+                    paid_ && "opacity-70",
+                    overdueLevel === "overdue" && "border-red-400 bg-red-50/40",
+                    overdueLevel === "warning" && "border-amber-300 bg-amber-50/40"
+                  )}>
+                    <CardContent className="p-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1.5">
+                            <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center shrink-0">
+                              <User className="h-4 w-4 text-gray-500" />
+                            </div>
+                            <div>
+                              <p className="font-bold text-gray-800 leading-tight">{sale.customer?.name ?? "Walk-in Customer"}</p>
+                              {sale.customer?.contact && (
+                                <a href={`https://wa.me/${sale.customer.contact.replace(/\D/g,"")}`} target="_blank" rel="noreferrer"
+                                  className="text-xs text-green-600 hover:underline flex items-center gap-1">
+                                  <Phone className="h-2.5 w-2.5" />{sale.customer.contact}
+                                </a>
+                              )}
+                            </div>
+                          </div>
+                          <p className="text-sm text-gray-600">{sale.plant_name || sale.batch_code || "Seedlings"} — {sale.quantity.toLocaleString()} units</p>
+                          <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                            <p className="text-xs text-gray-400">
+                              {new Date(sale.sale_date).toLocaleDateString("en-KE", { day: "numeric", month: "short", year: "numeric" })}
+                            </p>
+                            {overdueLevel === "overdue" && (
+                              <Badge className="bg-red-600 text-white border-red-600 text-[10px] px-1.5 py-0 h-4">{daysOutstanding}d overdue</Badge>
+                            )}
+                            {overdueLevel === "warning" && (
+                              <Badge className="bg-amber-100 text-amber-700 border-amber-300 text-[10px] px-1.5 py-0 h-4">{daysOutstanding}d — due soon</Badge>
+                            )}
+                          </div>
+                          {sale.notes && <p className="text-xs text-gray-400 mt-1 italic">{sale.notes}</p>}
+                        </div>
+                        <div className="text-right shrink-0 space-y-2">
+                          {isPartial(sale) ? (
+                            <>
+                              <p className="text-xl font-black text-orange-600">Ksh {getRemainingBalance(sale).toLocaleString()}</p>
+                              <p className="text-xs text-gray-400">of Ksh {sale.total_amount.toLocaleString()}</p>
+                              <Badge className="bg-orange-100 text-orange-700 border-orange-200 block text-center">Partial</Badge>
+                            </>
+                          ) : (
+                            <p className={cn("text-xl font-black", paid_ ? "text-green-700" : "text-red-600")}>
+                              Ksh {sale.total_amount.toLocaleString()}
+                            </p>
+                          )}
+                          {paid_ ? (
+                            <Badge className="bg-green-100 text-green-700 border-green-200"><CheckCircle className="h-3 w-3 mr-1" /> Paid</Badge>
+                          ) : (
+                            <div className="flex flex-col gap-1.5 items-end">
+                              <Button size="sm" onClick={() => openPayDialog(sale)}
+                                className="bg-green-600 hover:bg-green-700 text-white text-xs px-3 h-7">
+                                {isPartial(sale) ? "Collect More" : "Record Payment"}
+                              </Button>
+                              {sale.customer?.contact && (
+                                <Button size="sm" variant="outline" onClick={() => sendReminder(sale)}
+                                  className="text-xs px-3 h-7 border-green-300 text-green-700 hover:bg-green-50">
+                                  <MessageCircle className="h-3 w-3 mr-1" /> Remind
+                                </Button>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )
+              })}
+            </div>
+          )}
+        </>
       )}
 
       {/* Mark as paid dialog */}
@@ -508,6 +721,35 @@ export function CreditorsTab() {
           <div className="flex items-center justify-between pt-2 border-t">
             <p className="text-xs text-gray-400">{sentIds.size} of {overdueSales.length} sent</p>
             <Button variant="outline" size="sm" onClick={() => setBulkOpen(false)}>Done</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Overdue threshold settings dialog */}
+      <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
+        <DialogContent className="sm:max-w-xs mx-4">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Settings2 className="h-4 w-4" /> Overdue Settings
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-1">
+            <div className="space-y-1.5">
+              <Label>Mark balance as overdue after (days)</Label>
+              <Input
+                type="number"
+                min={1}
+                value={overdueDaysInput}
+                onChange={e => setOverdueDaysInput(e.target.value)}
+              />
+              <p className="text-xs text-gray-400">
+                Customers with balances older than this will be flagged red. Warning (amber) shows at half this number. Currently: <strong>{overdueDays} days</strong>.
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" className="flex-1" onClick={() => setSettingsOpen(false)}>Cancel</Button>
+              <Button className="flex-1 bg-green-600 hover:bg-green-700 text-white" onClick={saveOverdueDays}>Save</Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
