@@ -16,7 +16,7 @@ import { useToast } from "@/components/ui/use-toast"
 import { demoInventory } from "@/components/demo-data"
 import { DemoModeBanner } from "@/components/demo-mode-banner"
 import { exportToExcel, formatInventoryForExport } from "@/lib/excel-export"
-import { Download, Loader2, Plus, Edit, Trash2, Package, FileText, TrendingUp, ShoppingCart, Sprout, DollarSign, CheckCircle2 } from "lucide-react"
+import { Download, Loader2, Plus, Edit, Trash2, Package, FileText, TrendingUp, ShoppingCart, Sprout, DollarSign, CheckCircle2, Microscope } from "lucide-react"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { AddSachetForm } from "@/components/add-sachet-form"
@@ -46,6 +46,11 @@ export function InventoryTab() {
   const [costSaving, setCostSaving] = useState(false)
   const [costHistory, setCostHistory] = useState<any[]>([])
   const [costHistoryLoading, setCostHistoryLoading] = useState(false)
+  const [germBatch, setGermBatch] = useState<any>(null)
+  const [germForm, setGermForm] = useState({ actual_count: "", dead_count: "", notes: "", count_date: new Date().toISOString().split("T")[0] })
+  const [germSaving, setGermSaving] = useState(false)
+  const [germHistory, setGermHistory] = useState<any[]>([])
+  const [germHistoryLoading, setGermHistoryLoading] = useState(false)
   const { user } = useAuth()
 
   useEffect(() => {
