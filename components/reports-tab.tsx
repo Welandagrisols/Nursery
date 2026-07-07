@@ -83,6 +83,7 @@ export function ReportsTab() {
   const [loading, setLoading] = useState(true)
   const [exporting, setExporting] = useState(false)
   const [tablesExist, setTablesExist] = useState(true)
+  const [profitView, setProfitView] = useState<"batch" | "crop">("crop")
   const { toast } = useToast()
 
   useEffect(() => {
@@ -124,7 +125,7 @@ export function ReportsTab() {
       // Fetch task costs grouped by batch SKU
       const { data: taskCosts, error: taskError } = await supabase
         .from("vnms_staff_tasks")
-        .select("batch_sku, total_cost")
+        .select("batch_sku, batch_id, total_cost")
 
       if (taskError) throw taskError
 
@@ -135,11 +136,15 @@ export function ReportsTab() {
 
       if (salesError) throw salesError
 
+      // Fetch vnms_costs (general cost records per batch) — fail silently if table missing
+      const { data: costRecords } = await (supabase.from("vnms_costs") as any)
+        .select("batch_id, cost_type, amount")
+
       // Calculate profitability for each batch
       const profitabilityMap = new Map()
 
       inventory?.forEach((item: any) => {
-        const batchSku = item.sku
+        const batchSku = item.sku || item.batch_code
         const batchCost = item.batch_cost || 0
         const batchSales = sales?.filter((sale: any) => sale.batch_code === batchSku || sale.batch_id === item.id) || []
         const seedlingsSold = batchSales.reduce((sum: any, sale: any) => sum + Number(sale.quantity || 0), 0)
@@ -147,25 +152,41 @@ export function ReportsTab() {
         const producedQuantity = Math.max(Number(item.quantity || 0) + seedlingsSold, 1)
 
         const taskCostsForBatch = taskCosts
-          ?.filter((task: any) => task.batch_sku === batchSku)
+          ?.filter((task: any) => task.batch_sku === batchSku || task.batch_id === item.id)
           .reduce((sum: any, task: any) => sum + Number(task.total_cost || 0), 0) || 0
 
-        const totalCostPerSeedling = (batchCost + taskCostsForBatch) / producedQuantity
+        // Aggregate vnms_costs entries for this batch
+        const batchCostRecords: any[] = (costRecords || []).filter((c: any) => c.batch_id === item.id)
+        const vnmsCostsTotal = batchCostRecords.reduce((s: number, c: any) => s + Number(c.amount || 0), 0)
+        const costsByType: Record<string, number> = batchCostRecords.reduce((acc: any, c: any) => {
+          const t = (c.cost_type || "other").toLowerCase()
+          acc[t] = (acc[t] || 0) + Number(c.amount || 0)
+          return acc
+        }, {})
 
+        const totalCosts = batchCost + taskCostsForBatch + vnmsCostsTotal
+        const totalCostPerSeedling = totalCosts / producedQuantity
         const profitPerSeedling = item.price - totalCostPerSeedling
         const profitMargin = item.price > 0 ? (profitPerSeedling / item.price) * 100 : 0
-
         const costRealized = seedlingsSold * totalCostPerSeedling
         const profitRealized = revenueGenerated - costRealized
+        const roi = totalCosts > 0 ? (profitRealized / totalCosts) * 100 : 0
 
-        profitabilityMap.set(batchSku, {
+        profitabilityMap.set(item.id, {
+          batch_id: item.id,
           batch_sku: batchSku,
+          batch_code: item.batch_code,
           plant_name: item.plant_name,
+          crop_type: item.crop_type || item.category || "Uncategorised",
           category: item.category,
+          lifecycle_status: item.lifecycle_status,
           quantity: producedQuantity,
           selling_price: item.price,
           total_batch_cost: batchCost,
           total_task_costs: taskCostsForBatch,
+          vnms_costs_total: vnmsCostsTotal,
+          costs_by_type: costsByType,
+          total_costs: totalCosts,
           total_cost_per_seedling: totalCostPerSeedling,
           profit_per_seedling: profitPerSeedling,
           profit_margin: profitMargin,
@@ -174,12 +195,13 @@ export function ReportsTab() {
           seedlings_sold: seedlingsSold,
           revenue_generated: revenueGenerated,
           profit_realized: profitRealized,
+          roi,
         })
       })
 
-      // Convert to array and sort by profit margin (highest first)
+      // Convert to array and sort by ROI (highest first)
       const profitabilityArray = Array.from(profitabilityMap.values())
-        .sort((a, b) => b.profit_margin - a.profit_margin)
+        .sort((a, b) => b.roi - a.roi)
 
       setProfitabilityData(profitabilityArray)
 
@@ -317,21 +339,23 @@ export function ReportsTab() {
       setExporting(true)
 
       const exportData = profitabilityData.map((item) => ({
-        "Batch SKU": item.batch_sku,
+        "Batch Code": item.batch_code || item.batch_sku,
         "Plant Name": item.plant_name,
-        Category: item.category,
+        "Crop Type": item.crop_type,
+        "Category": item.category,
+        "Lifecycle Status": item.lifecycle_status,
         "Quantity in Batch": item.quantity,
+        "Seedlings Sold": item.seedlings_sold,
         "Selling Price per Seedling (Ksh)": item.selling_price,
         "Initial Batch Cost (Ksh)": item.total_batch_cost,
-        "Task Costs (Ksh)": item.total_task_costs,
-        "Total Cost per Seedling (Ksh)": Math.round(item.total_cost_per_seedling * 100) / 100,
-        "Profit per Seedling (Ksh)": Math.round(item.profit_per_seedling * 100) / 100,
-        "Profit Margin (%)": Math.round(item.profit_margin * 100) / 100,
-        "Total Batch Value (Ksh)": item.total_batch_value,
-        "Potential Batch Profit (Ksh)": Math.round(item.total_batch_profit * 100) / 100,
-        "Seedlings Sold": item.seedlings_sold,
-        "Revenue Generated (Ksh)": item.revenue_generated,
-        "Profit Realized (Ksh)": Math.round(item.profit_realized * 100) / 100,
+        "Labour / Task Costs (Ksh)": Math.round(item.total_task_costs),
+        "Other Costs — vnms_costs (Ksh)": Math.round(item.vnms_costs_total || 0),
+        "Total Costs (Ksh)": Math.round(item.total_costs || 0),
+        "Cost per Seedling (Ksh)": Math.round(item.total_cost_per_seedling * 100) / 100,
+        "Revenue Generated (Ksh)": Math.round(item.revenue_generated),
+        "Profit Realized (Ksh)": Math.round(item.profit_realized),
+        "Profit Margin (%)": Math.round(item.profit_margin * 10) / 10,
+        "ROI (%)": Math.round((item.roi || 0) * 10) / 10,
       }))
 
       const success = exportToExcel(exportData, `Profitability_Report_${new Date().toISOString().split("T")[0]}`)
@@ -359,9 +383,34 @@ export function ReportsTab() {
   const totalBatches = profitabilityData.length
   const totalRevenue = profitabilityData.reduce((sum, item) => sum + item.revenue_generated, 0)
   const totalProfit = profitabilityData.reduce((sum, item) => sum + item.profit_realized, 0)
-  const averageProfitMargin = totalBatches > 0 
-    ? profitabilityData.reduce((sum, item) => sum + item.profit_margin, 0) / totalBatches 
+  const totalCostsAll = profitabilityData.reduce((sum, item) => sum + (item.total_costs || 0), 0)
+  const averageProfitMargin = totalBatches > 0
+    ? profitabilityData.reduce((sum, item) => sum + item.profit_margin, 0) / totalBatches
     : 0
+  const overallRoi = totalCostsAll > 0 ? (totalProfit / totalCostsAll) * 100 : 0
+
+  // Crop-type grouping
+  const cropReport: {
+    crop_type: string; batches: number; revenue: number; total_costs: number
+    profit: number; margin: number; roi: number; seedlings_sold: number
+  }[] = (() => {
+    const map = new Map<string, any>()
+    for (const item of profitabilityData) {
+      const ct = item.crop_type || "Uncategorised"
+      const cur = map.get(ct) || { crop_type: ct, batches: 0, revenue: 0, total_costs: 0, profit: 0, seedlings_sold: 0 }
+      cur.batches += 1
+      cur.revenue += item.revenue_generated || 0
+      cur.total_costs += item.total_costs || 0
+      cur.profit += item.profit_realized || 0
+      cur.seedlings_sold += item.seedlings_sold || 0
+      map.set(ct, cur)
+    }
+    return Array.from(map.values()).map(c => ({
+      ...c,
+      margin: c.revenue > 0 ? (c.profit / c.revenue) * 100 : 0,
+      roi: c.total_costs > 0 ? (c.profit / c.total_costs) * 100 : 0,
+    })).sort((a, b) => b.roi - a.roi)
+  })()
 
   const getProfitTrendIcon = (margin: number) => {
     if (margin > 25) return <TrendingUp className="h-4 w-4 text-green-600" />
@@ -402,147 +451,189 @@ export function ReportsTab() {
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="profitability" className="mt-4 space-y-6">
+        <TabsContent value="profitability" className="mt-4 space-y-5">
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-        <Card>
-          <CardHeader className="px-4 pt-4 pb-2">
-            <CardTitle className="text-sm font-medium">Total Batches</CardTitle>
-          </CardHeader>
-          <CardContent className="px-4 pb-4 pt-0">
-            <div className="text-3xl sm:text-4xl font-bold text-green-600">{totalBatches}</div>
-          </CardContent>
-        </Card>
+          {/* Summary strip */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <Card>
+              <CardContent className="p-3">
+                <p className="text-[10px] font-semibold text-muted-foreground uppercase mb-0.5">Revenue</p>
+                <p className="text-lg font-black text-green-700">Ksh {totalRevenue.toLocaleString()}</p>
+                <p className="text-[10px] text-muted-foreground">{totalBatches} batch{totalBatches !== 1 ? "es" : ""}</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-3">
+                <p className="text-[10px] font-semibold text-muted-foreground uppercase mb-0.5">Total Costs</p>
+                <p className="text-lg font-black text-red-600">Ksh {totalCostsAll.toLocaleString()}</p>
+                <p className="text-[10px] text-muted-foreground">labour + inputs + other</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-3">
+                <p className="text-[10px] font-semibold text-muted-foreground uppercase mb-0.5">Profit Realised</p>
+                <p className={`text-lg font-black ${totalProfit >= 0 ? "text-green-700" : "text-red-600"}`}>
+                  Ksh {Math.round(totalProfit).toLocaleString()}
+                </p>
+                <p className="text-[10px] text-muted-foreground">margin {averageProfitMargin.toFixed(1)}%</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-3">
+                <p className="text-[10px] font-semibold text-muted-foreground uppercase mb-0.5">Overall ROI</p>
+                <p className={`text-lg font-black ${overallRoi >= 0 ? "text-blue-700" : "text-red-600"}`}>
+                  {overallRoi.toFixed(1)}%
+                </p>
+                <p className="text-[10px] text-muted-foreground">profit ÷ total costs</p>
+              </CardContent>
+            </Card>
+          </div>
 
-        <Card>
-          <CardHeader className="px-4 pt-4 pb-2">
-            <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
-          </CardHeader>
-          <CardContent className="px-4 pb-4 pt-0">
-            <div className="text-3xl sm:text-4xl font-bold text-orange-600">Ksh {totalRevenue.toLocaleString()}</div>
-          </CardContent>
-        </Card>
+          {/* View toggle + export */}
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <div className="flex gap-2">
+              <button
+                onClick={() => setProfitView("crop")}
+                className={`px-3 py-1.5 rounded-full text-sm font-semibold transition-all flex items-center gap-1.5 ${profitView === "crop" ? "bg-green-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}
+              >
+                <BarChart3 className="h-3.5 w-3.5" /> By Crop
+              </button>
+              <button
+                onClick={() => setProfitView("batch")}
+                className={`px-3 py-1.5 rounded-full text-sm font-semibold transition-all flex items-center gap-1.5 ${profitView === "batch" ? "bg-green-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}
+              >
+                <Package className="h-3.5 w-3.5" /> By Batch
+              </button>
+            </div>
+            <Button variant="outline" size="sm" className="gap-2 text-xs"
+              onClick={handleExportToExcel} disabled={exporting || profitabilityData.length === 0}>
+              {exporting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
+              Export
+            </Button>
+          </div>
 
-        <Card>
-          <CardHeader className="px-4 pt-4 pb-2">
-            <CardTitle className="text-sm font-medium">Total Profit</CardTitle>
-          </CardHeader>
-          <CardContent className="px-4 pb-4 pt-0">
-            <div className="text-3xl sm:text-4xl font-bold text-orange-600">Ksh {totalProfit.toLocaleString()}</div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="px-4 pt-4 pb-2">
-            <CardTitle className="text-sm font-medium">Avg Margin</CardTitle>
-          </CardHeader>
-          <CardContent className="px-4 pb-4 pt-0">
-            <div className="text-3xl sm:text-4xl font-bold text-orange-600">{averageProfitMargin.toFixed(1)}%</div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Export Button */}
-      <div className="flex justify-end">
-        <Button
-          variant="outline"
-          className="flex items-center gap-2"
-          onClick={handleExportToExcel}
-          disabled={exporting || profitabilityData.length === 0}
-        >
-          {exporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-          Export to Excel
-        </Button>
-      </div>
-
-      {/* Profitability Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Profit Leaderboard</CardTitle>
-        </CardHeader>
-        <CardContent>
           {loading ? (
-            <div className="text-center py-8">Loading profitability data...</div>
+            <div className="text-center py-10 text-muted-foreground text-sm">Loading profitability data…</div>
           ) : profitabilityData.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              No profitability data available. Add inventory and tasks to see reports.
+            <div className="text-center py-10 text-muted-foreground text-sm">
+              No data yet. Add batches and sales to see profitability.
+            </div>
+          ) : profitView === "crop" ? (
+            /* ── BY CROP VIEW ── */
+            <div className="space-y-3">
+              {cropReport.map((c, i) => {
+                const isPositive = c.profit >= 0
+                const roiColor = c.roi >= 30 ? "text-green-700" : c.roi >= 0 ? "text-blue-700" : "text-red-600"
+                const maxRev = Math.max(...cropReport.map(x => x.revenue), 1)
+                const revPct = (c.revenue / maxRev) * 100
+                return (
+                  <Card key={c.crop_type} className={i === 0 ? "border-green-300 bg-green-50/30" : ""}>
+                    <CardContent className="p-4">
+                      <div className="flex items-start justify-between gap-3 mb-3">
+                        <div className="flex items-center gap-2">
+                          {i === 0 && <span className="text-base">🏆</span>}
+                          <div>
+                            <p className="font-bold text-gray-800">{c.crop_type}</p>
+                            <p className="text-xs text-muted-foreground">{c.batches} batch{c.batches !== 1 ? "es" : ""} · {c.seedlings_sold.toLocaleString()} seedlings sold</p>
+                          </div>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <p className={`text-xl font-black ${roiColor}`}>ROI {c.roi.toFixed(1)}%</p>
+                          <p className="text-xs text-muted-foreground">margin {c.margin.toFixed(1)}%</p>
+                        </div>
+                      </div>
+                      {/* Revenue bar */}
+                      <div className="h-1.5 bg-gray-100 rounded-full mb-2.5 overflow-hidden">
+                        <div className="h-full bg-green-500 rounded-full" style={{ width: `${revPct}%` }} />
+                      </div>
+                      {/* Cost breakdown */}
+                      <div className="grid grid-cols-3 gap-2 text-xs">
+                        <div>
+                          <p className="text-muted-foreground">Revenue</p>
+                          <p className="font-semibold text-green-700">Ksh {c.revenue.toLocaleString()}</p>
+                        </div>
+                        <div>
+                          <p className="text-muted-foreground">Total Costs</p>
+                          <p className="font-semibold text-red-600">Ksh {c.total_costs.toLocaleString()}</p>
+                        </div>
+                        <div>
+                          <p className="text-muted-foreground">Profit</p>
+                          <p className={`font-semibold ${isPositive ? "text-green-700" : "text-red-600"}`}>
+                            Ksh {Math.round(c.profit).toLocaleString()}
+                          </p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )
+              })}
             </div>
           ) : (
-            <div className="rounded-md border overflow-x-auto">
-              <Table className="min-w-[760px]">
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-8 text-xs">#</TableHead>
-                  <TableHead className="">Plant & Batch</TableHead>
-                  <TableHead className="hidden sm:table-cell">Performance</TableHead>
-                  <TableHead className="hidden lg:table-cell">Sales Data</TableHead>
-                  <TableHead className="">Profit</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {profitabilityData.map((item, index) => (
-                  <TableRow key={item.batch_sku} className="hover:bg-muted/50">
-                    <TableCell className="font-bold text-primary text-xs w-8">{index + 1}</TableCell>
-                    <TableCell className="">
-                      <div className="space-y-1">
-                        <div className="font-medium text-sm truncate">{item.plant_name}</div>
-                        <div className="flex flex-wrap gap-1">
-                          <Badge variant="outline" className="font-mono text-xs truncate max-w-[60px] sm:max-w-none">
-                            {item.batch_sku}
-                          </Badge>
-                          <Badge variant="secondary" className="text-xs hidden sm:inline-flex">
-                            {item.category}
-                          </Badge>
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          Qty: {item.quantity}
-                        </div>
-                        <div className="sm:hidden text-xs space-y-1">
-                          <Badge variant={getProfitBadgeVariant(item.profit_margin)} className="text-xs">
-                            {getProfitTrendIcon(item.profit_margin)}
-                            {item.profit_margin.toFixed(1)}%
-                          </Badge>
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell className="hidden sm:table-cell">
-                      <div className="space-y-1">
-                        <Badge variant={getProfitBadgeVariant(item.profit_margin)} className="text-xs">
-                          {getProfitTrendIcon(item.profit_margin)}
-                          {item.profit_margin.toFixed(1)}%
-                        </Badge>
-                        <div className="text-xs text-muted-foreground">
-                          Cost: Ksh {Math.round(item.total_cost_per_seedling)}
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell className="hidden lg:table-cell">
-                      <div className="text-sm space-y-1">
-                        <div className="font-medium">Ksh {item.revenue_generated.toLocaleString()}</div>
-                        <div className="text-muted-foreground text-xs">
-                          {item.seedlings_sold} sold
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell className="">
-                      <div className="space-y-1">
-                        <div className="font-bold text-accent text-sm">
-                          Ksh {Math.round(item.profit_realized).toLocaleString()}
-                        </div>
-                        <div className="lg:hidden text-xs text-muted-foreground">
-                          Rev: Ksh {item.revenue_generated.toLocaleString()}
-                        </div>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-              </Table>
-            </div>
+            /* ── BY BATCH VIEW ── */
+            <Card>
+              <CardContent className="p-0">
+                <div className="overflow-x-auto">
+                  <Table className="min-w-[680px]">
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-7 text-xs pl-4">#</TableHead>
+                        <TableHead>Plant / Batch</TableHead>
+                        <TableHead className="hidden sm:table-cell text-right">Costs</TableHead>
+                        <TableHead className="text-right">Revenue</TableHead>
+                        <TableHead className="text-right">Profit</TableHead>
+                        <TableHead className="text-right">ROI</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {profitabilityData.map((item, index) => {
+                        const isPos = item.profit_realized >= 0
+                        const roiColor = item.roi >= 30 ? "text-green-700 font-bold" : item.roi >= 0 ? "text-blue-700" : "text-red-600"
+                        return (
+                          <TableRow key={item.batch_id || item.batch_sku} className="hover:bg-muted/40">
+                            <TableCell className="font-bold text-muted-foreground text-xs pl-4">{index + 1}</TableCell>
+                            <TableCell>
+                              <p className="font-semibold text-sm truncate max-w-[140px]">{item.plant_name}</p>
+                              <div className="flex items-center gap-1 flex-wrap mt-0.5">
+                                {item.batch_code && (
+                                  <Badge variant="outline" className="font-mono text-[10px] h-4 px-1">{item.batch_code}</Badge>
+                                )}
+                                {item.crop_type && (
+                                  <Badge variant="secondary" className="text-[10px] h-4 px-1 hidden sm:inline-flex">{item.crop_type}</Badge>
+                                )}
+                                <Badge variant="outline" className={`text-[10px] h-4 px-1 ${getProfitBadgeVariant(item.profit_margin) === "destructive" ? "border-red-300 text-red-600" : getProfitBadgeVariant(item.profit_margin) === "default" ? "border-green-300 text-green-700" : "border-amber-300 text-amber-700"}`}>
+                                  {item.profit_margin.toFixed(0)}% margin
+                                </Badge>
+                              </div>
+                              <p className="text-[10px] text-muted-foreground mt-0.5">{item.seedlings_sold} sold of {item.quantity}</p>
+                            </TableCell>
+                            <TableCell className="hidden sm:table-cell text-right">
+                              <p className="text-sm font-semibold text-red-600">Ksh {Math.round(item.total_costs || 0).toLocaleString()}</p>
+                              {item.total_costs > 0 && (
+                                <p className="text-[10px] text-muted-foreground">
+                                  Ksh {Math.round(item.total_cost_per_seedling)} / seedling
+                                </p>
+                              )}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <p className="text-sm font-semibold text-green-700">Ksh {Math.round(item.revenue_generated).toLocaleString()}</p>
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <p className={`text-sm font-bold ${isPos ? "text-green-700" : "text-red-600"}`}>
+                                Ksh {Math.round(item.profit_realized).toLocaleString()}
+                              </p>
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <span className={`text-sm ${roiColor}`}>{item.roi.toFixed(1)}%</span>
+                            </TableCell>
+                          </TableRow>
+                        )
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
+            </Card>
           )}
-        </CardContent>
-      </Card>
         </TabsContent>
 
         <TabsContent value="sales" className="mt-4 space-y-4">
