@@ -2,17 +2,19 @@
 
 import { useState, useEffect } from 'react'
 import { Tabs, TabsContent } from '@/components/ui/tabs'
-import { DashboardTab } from '@/components/dashboard-tab'
-import { InventoryTab } from '@/components/inventory-tab'
-import { SalesTab } from '@/components/sales-tab'
-import { CustomersTab } from '@/components/customers-tab'
-import { TasksTab } from '@/components/tasks-tab'
-import { ReportsTab } from '@/components/reports-tab'
-import { CommsTab } from '@/components/comms-tab'
-import { CreditorsTab } from '@/components/creditors-tab'
-import { OpsTab } from '@/components/ops-tab'
-import { NurseryLayoutTab } from '@/components/nursery-layout-tab'
-import { SettingsTab } from '@/components/settings-tab'
+import dynamic from 'next/dynamic'
+
+const DashboardTab     = dynamic(() => import('@/components/dashboard-tab').then(m => m.DashboardTab),       { ssr: false })
+const InventoryTab     = dynamic(() => import('@/components/inventory-tab').then(m => m.InventoryTab),       { ssr: false })
+const SalesTab         = dynamic(() => import('@/components/sales-tab').then(m => m.SalesTab),               { ssr: false })
+const CustomersTab     = dynamic(() => import('@/components/customers-tab').then(m => m.CustomersTab),       { ssr: false })
+const TasksTab         = dynamic(() => import('@/components/tasks-tab').then(m => m.TasksTab),               { ssr: false })
+const ReportsTab       = dynamic(() => import('@/components/reports-tab').then(m => m.ReportsTab),           { ssr: false })
+const CommsTab         = dynamic(() => import('@/components/comms-tab').then(m => m.CommsTab),               { ssr: false })
+const CreditorsTab     = dynamic(() => import('@/components/creditors-tab').then(m => m.CreditorsTab),       { ssr: false })
+const OpsTab           = dynamic(() => import('@/components/ops-tab').then(m => m.OpsTab),                   { ssr: false })
+const NurseryLayoutTab = dynamic(() => import('@/components/nursery-layout-tab').then(m => m.NurseryLayoutTab), { ssr: false })
+const SettingsTab      = dynamic(() => import('@/components/settings-tab').then(m => m.SettingsTab),         { ssr: false })
 import { AppSidebar } from '@/components/app-sidebar'
 import { BottomNav } from '@/components/bottom-nav'
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar'

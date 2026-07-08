@@ -2,7 +2,6 @@
 
 import { createContext, useContext, useState, useEffect, ReactNode } from "react"
 import { supabase, isDemoMode } from "@/lib/supabase"
-import { compare } from "bcryptjs"
 
 export type StaffRole = "owner" | "manager" | "sales" | "worker"
 
@@ -73,17 +72,16 @@ export function RoleProvider({ children }: { children: ReactNode }) {
         return {}
       }
 
-      const { data, error } = await (supabase.from("vnms_staff") as any)
-        .select("id, name, role, pin_hash")
-        .eq("id", staffId)
-        .eq("is_active", true)
-        .single()
+      const { data, error } = await (supabase.rpc as any)("vnms_verify_staff_pin", {
+        p_staff_id: staffId,
+        p_pin: pin,
+      })
 
-      if (error || !data) return { error: "Staff member not found." }
-      const isValidPin = await compare(pin, data.pin_hash)
-      if (!isValidPin) return { error: "Wrong PIN. Try again." }
+      if (error) return { error: "Login failed. Please try again." }
+      if (!data || (data as any[]).length === 0) return { error: "Wrong PIN. Try again." }
 
-      const user: StaffUser = { id: data.id, name: data.name, role: data.role }
+      const row = (data as any[])[0]
+      const user: StaffUser = { id: row.id, name: row.name, role: row.role as StaffRole }
       setStaffUser(user)
       localStorage.setItem(STORAGE_KEY, JSON.stringify(user))
       return {}

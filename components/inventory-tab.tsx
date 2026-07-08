@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import useSWR from 'swr'
 import { supabase, isDemoMode, checkTableExists } from "@/lib/supabase"
 import { useAuth } from "@/contexts/auth-context"
 import { Button } from "@/components/ui/button"
@@ -24,14 +25,23 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { BatchBookingsTab } from "@/components/batch-bookings-tab"
 import { CalendarClock } from "lucide-react"
 
+async function fetchInventoryFromDB(limit: number): Promise<any[]> {
+  const { data, error } = await supabase
+    .from("vnms_batches")
+    .select("*")
+    .order("created_at", { ascending: false })
+    .limit(limit + 1) // fetch one extra to detect if more exist
+  if (error) throw error
+  return data || []
+}
+
 export function InventoryTab() {
-  const [inventory, setInventory] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
+  const [invLimit, setInvLimit] = useState(100)
+  const [tableExists, setTableExists] = useState<boolean | null>(null)
   const [exporting, setExporting] = useState(false)
   const [searchTerm, setSearchTerm] = useState("")
   const [categoryFilter, setCategoryFilter] = useState("All Categories")
   const [editItem, setEditItem] = useState<any>(null)
-  const [tableExists, setTableExists] = useState(true)
   const [activeTab, setActiveTab] = useState("plants")
   const [addPlantDialogOpen, setAddPlantDialogOpen] = useState(false)
   const [addConsumableDialogOpen, setAddConsumableDialogOpen] = useState(false)
@@ -53,64 +63,39 @@ export function InventoryTab() {
   const [germHistoryLoading, setGermHistoryLoading] = useState(false)
   const { user } = useAuth()
 
+  // One-time init: table check + fetch sachets/bookings
   useEffect(() => {
     async function init() {
-      if (isDemoMode) {
-        setInventory(demoInventory)
-        setLoading(false)
-        return
+      if (isDemoMode) { setTableExists(false); return }
+      let exists = false
+      try {
+        exists = await checkTableExists("vnms_batches")
+      } catch {
+        // network failure → fall back to demo data
       }
-
-      const exists = await checkTableExists("vnms_batches")
       setTableExists(exists)
-
-      if (!exists) {
-        setInventory(demoInventory)
-        setLoading(false)
-        return
+      if (exists) {
+        fetchSachets()
+        fetchBookings()
       }
-
-      fetchSachets()
-      fetchBookings()
-      fetchInventory().catch((error) => {
-        console.log("Falling back to demo mode due to:", error.message)
-        toast({
-          title: "Connection Issue",
-          description: "Unable to connect to database. Using demo data. Check your internet connection and Supabase settings.",
-          variant: "destructive",
-        })
-        setInventory(demoInventory)
-        setLoading(false)
-      })
     }
-
     init()
   }, [])
 
-  async function fetchInventory() {
-    try {
-      setLoading(true)
+  // SWR: fetch & cache inventory batches, re-keyed on limit for pagination
+  const swrInvKey = tableExists === true ? `vnms_batches:${invLimit}` : null
+  const { data: swrInv, isLoading: invLoading, mutate: mutateInventory } = useSWR(
+    swrInvKey,
+    () => fetchInventoryFromDB(invLimit),
+    { revalidateOnFocus: false, dedupingInterval: 30_000 }
+  )
 
-      // Removed user filtering to show all data (suspended user differentiation)
-      const { data, error } = await supabase
-        .from("vnms_batches")
-        .select("*")
-        .order("created_at", { ascending: false })
-
-      if (error) throw error
-      setInventory(data || [])
-    } catch (error: any) {
-      console.error("Error fetching inventory:", error)
-      toast({
-        title: "Error loading inventory",
-        description: error.message || "Failed to load inventory",
-        variant: "destructive",
-      })
-      setInventory([])
-    } finally {
-      setLoading(false)
-    }
-  }
+  const rawInv = swrInv ?? []
+  const inventory: any[] = (isDemoMode || tableExists === false)
+    ? demoInventory
+    : rawInv.slice(0, invLimit)
+  const hasMoreInventory = rawInv.length > invLimit
+  const loading = tableExists === null || (tableExists === true && invLoading && !swrInv)
 
   async function fetchSachets() {
     if (isDemoMode) { setSachets([]); return }
@@ -150,7 +135,7 @@ export function InventoryTab() {
         .eq("id", id)
       if (error) throw error
       toast({ title: "Status updated", description: `Lifecycle → ${status.replace(/_/g, " ")}` })
-      await fetchInventory()
+      await mutateInventory()
     } catch (err: any) {
       toast({ title: "Update failed", description: err.message, variant: "destructive" })
     }
@@ -253,7 +238,7 @@ export function InventoryTab() {
         description: "Item deleted successfully",
       })
 
-      await fetchInventory()
+      await mutateInventory()
     } catch (error: any) {
       console.error("Error deleting item:", error)
       toast({
@@ -267,7 +252,7 @@ export function InventoryTab() {
   const handleAddSuccess = async () => {
     console.log("handleAddSuccess called")
     try {
-      await fetchInventory()
+      await mutateInventory()
       setAddPlantDialogOpen(false)
       setAddConsumableDialogOpen(false)
     } catch (error) {
@@ -717,6 +702,7 @@ export function InventoryTab() {
               </Dialog>
             </div>
           ) : (
+            <>
             <div className="grid gap-4 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {filteredPlants.map((item) => (
                 <Card
@@ -881,6 +867,17 @@ export function InventoryTab() {
                 </Card>
               ))}
             </div>
+            {hasMoreInventory && !loading && (
+              <div className="flex justify-center pt-2 pb-4">
+                <button
+                  onClick={() => setInvLimit(prev => prev + 100)}
+                  className="px-6 py-2 text-sm font-medium text-green-700 bg-green-50 border border-green-200 rounded-full hover:bg-green-100 transition-colors"
+                >
+                  Load more batches
+                </button>
+              </div>
+            )}
+            </>
           )}
         </TabsContent>
         {/* Consumables Tab */}
@@ -1025,7 +1022,7 @@ export function InventoryTab() {
               lifecycle_status: b.lifecycle_status || "received",
               expected_ready_date: b.expected_ready_date,
             }))}
-            tableExists={tableExists}
+            tableExists={tableExists ?? false}
           />
         </TabsContent>
         {/* Sachets Tab */}
@@ -1105,7 +1102,7 @@ export function InventoryTab() {
               item={editItem}
               onSuccess={() => {
                 setEditItem(null)
-                fetchInventory()
+                mutateInventory()
               }}
               onCancel={() => setEditItem(null)}
             />

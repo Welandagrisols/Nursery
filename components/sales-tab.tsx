@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useMemo } from "react"
+import useSWR from 'swr'
 import { supabase, isDemoMode, checkTableExists } from "@/lib/supabase"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -62,11 +63,20 @@ function startOf(unit: "day" | "week" | "month"): Date {
   return new Date(new Date(now).setDate(diff))
 }
 
+async function fetchSalesFromDB(limit: number): Promise<SaleData[]> {
+  const { data, error } = await supabase
+    .from("vnms_sales")
+    .select("*, customer:vnms_customers(id, name, contact)")
+    .order("sale_date", { ascending: false })
+    .limit(limit + 1) // fetch one extra to detect if more exist
+  if (error) throw error
+  return (data || []) as SaleData[]
+}
+
 export function SalesTab() {
-  const [sales, setSales] = useState<SaleData[]>([])
-  const [loading, setLoading] = useState(true)
+  const [salesLimit, setSalesLimit] = useState(100)
+  const [tableExists, setTableExists] = useState<boolean | null>(null)
   const [exporting, setExporting] = useState(false)
-  const [tableExists, setTableExists] = useState(true)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [posOpen, setPosOpen] = useState(false)
   const [receiptSale, setReceiptSale] = useState<ReceiptSale | null>(null)
@@ -79,35 +89,28 @@ export function SalesTab() {
   const [fromDate, setFromDate] = useState("")
   const [toDate, setToDate] = useState("")
 
+  // One-time table existence check
   useEffect(() => {
-    async function init() {
-      if (isDemoMode) { loadDemoSales(); return }
-      const exists = await checkTableExists("vnms_sales")
-      setTableExists(exists)
-      if (!exists) { loadDemoSales(); return }
-      fetchSales().catch(() => loadDemoSales())
-    }
-    init()
+    if (isDemoMode) { setTableExists(false); return }
+    checkTableExists("vnms_sales")
+      .then(setTableExists)
+      .catch(() => setTableExists(false)) // network failure → fall back to demo data
   }, [])
 
-  function loadDemoSales() {
-    setSales(demoSales)
-    setLoading(false)
-  }
+  // SWR: fetch & cache sales, re-keyed on limit for pagination
+  const swrSalesKey = tableExists === true ? `vnms_sales:${salesLimit}` : null
+  const { data: swrSales, isLoading: swrLoading, mutate: mutateSales } = useSWR(
+    swrSalesKey,
+    () => fetchSalesFromDB(salesLimit),
+    { revalidateOnFocus: false, dedupingInterval: 30_000 }
+  )
 
-  async function fetchSales() {
-    setLoading(true)
-    try {
-      const { data, error } = await supabase
-        .from("vnms_sales")
-        .select("*, customer:vnms_customers(id, name, contact)")
-        .order("sale_date", { ascending: false })
-      if (error) throw error
-      setSales((data || []) as SaleData[])
-    } finally {
-      setLoading(false)
-    }
-  }
+  const rawSales = swrSales ?? []
+  const sales: SaleData[] = (isDemoMode || tableExists === false)
+    ? (demoSales as unknown as SaleData[])
+    : rawSales.slice(0, salesLimit)
+  const hasMoreSales = rawSales.length > salesLimit
+  const loading = tableExists === null || (tableExists === true && swrLoading && !swrSales)
 
   // ── Derived: filtered sales
   const filteredSales = useMemo(() => {
@@ -351,7 +354,7 @@ export function SalesTab() {
                 </DialogTrigger>
                 <DialogContent className="sm:max-w-[600px] m-2">
                   <DialogHeader><DialogTitle>Record New Sale</DialogTitle></DialogHeader>
-                  <AddSaleForm onSuccess={async () => { await fetchSales(); setDialogOpen(false) }} />
+                  <AddSaleForm onSuccess={async () => { await mutateSales(); setDialogOpen(false) }} />
                 </DialogContent>
               </Dialog>
             </div>
@@ -489,8 +492,20 @@ export function SalesTab() {
         </CardContent>
       </Card>
 
+      {/* Load more */}
+      {hasMoreSales && !loading && (
+        <div className="flex justify-center pt-2 pb-4">
+          <button
+            onClick={() => setSalesLimit(prev => prev + 100)}
+            className="px-6 py-2 text-sm font-medium text-green-700 bg-green-50 border border-green-200 rounded-full hover:bg-green-100 transition-colors"
+          >
+            Load more sales
+          </button>
+        </div>
+      )}
+
       {/* Modals */}
-      <POSModal open={posOpen} onClose={() => setPosOpen(false)} onSaleComplete={() => { setPosOpen(false); fetchSales() }} />
+      <POSModal open={posOpen} onClose={() => setPosOpen(false)} onSaleComplete={() => { setPosOpen(false); mutateSales() }} />
       <ReceiptModal sale={receiptSale} onClose={() => setReceiptSale(null)} />
     </div>
   )

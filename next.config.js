@@ -32,7 +32,6 @@ const nextConfig = {
   },
   images: {
     remotePatterns,
-    unoptimized: true
   },
   async headers() {
     return [
@@ -47,11 +46,11 @@ const nextConfig = {
           },
           {
             key: 'X-Frame-Options',
-            value: 'ALLOWALL'
+            value: 'DENY'
           },
           {
             key: 'Content-Security-Policy',
-            value: "frame-ancestors *"
+            value: "frame-ancestors 'none'"
           }
         ]
       }
