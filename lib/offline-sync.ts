@@ -40,12 +40,12 @@ class OfflineSync {
   private async executeOperation(type: 'INSERT' | 'UPDATE' | 'DELETE', table: string, data: any) {
     switch (type) {
       case 'INSERT':
-        const { error: insertError } = await supabase.from(table).insert(data)
+        const { error: insertError } = await supabase.from(table as any).insert(data)
         if (insertError) throw insertError
         break
         
       case 'UPDATE':
-        const { error: updateError } = await (supabase.from(table) as any)
+        const { error: updateError } = await (supabase.from(table as any) as any)
           .update(data)
           .eq('id', data.id)
         if (updateError) throw updateError
@@ -53,7 +53,7 @@ class OfflineSync {
         
       case 'DELETE':
         const { error: deleteError } = await supabase
-          .from(table)
+          .from(table as any)
           .delete()
           .eq('id', data.id)
         if (deleteError) throw deleteError

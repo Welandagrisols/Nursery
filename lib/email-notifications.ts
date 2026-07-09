@@ -17,7 +17,7 @@ export interface NotificationData {
 export const sendEmailNotification = async (notification: NotificationData) => {
   try {
     // Store notification in database for email service to pick up
-    const { error } = await (supabase.from('email_notifications') as any)
+    const { error } = await (supabase.from('email_notifications' as any) as any)
       .insert({
         recipient_emails: NOTIFICATION_EMAILS,
         notification_type: notification.type,

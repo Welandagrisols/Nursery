@@ -60,7 +60,7 @@ export const checkTableExists = async (tableName: string): Promise<boolean> => {
     const timeoutId = setTimeout(() => controller.abort(), 10000)
 
     const { data, error } = await supabase
-      .from(tableName)
+      .from(tableName as any)
       .select('id')
       .limit(1)
       .abortSignal(controller.signal)

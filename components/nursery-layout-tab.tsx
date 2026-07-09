@@ -1295,7 +1295,7 @@ export function NurseryLayoutTab() {
       setBatches((batchR.data as Batch[]) || [])
 
       const assignMap = new Map<string, Assignment>()
-      for (const a of (assignR.data || []) as Assignment[]) {
+      for (const a of (assignR.data || []) as unknown as Assignment[]) {
         if (!assignMap.has(a.tray_id)) assignMap.set(a.tray_id, a)
       }
       setAssignments(Array.from(assignMap.values()))

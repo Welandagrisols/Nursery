@@ -84,16 +84,14 @@ export function DashboardTab() {
 
       // Fetch stock alerts
       supabase.from("vnms_stock_alerts").select("*").eq("resolved", false).order("created_at", { ascending: false })
-        .then(({ data }) => { if (data) setStockAlerts(data) })
-        .catch(() => {})
+        .then(({ data }) => { if (data) setStockAlerts(data) }, () => {})
 
       // Fetch today's tasks for staff attendance
       const todayStr = new Date().toISOString().split("T")[0]
       supabase.from("vnms_staff_tasks").select("id, task_name, assigned_to, clock_in_at, clock_out_at, status, labor_hours, is_late, is_absent")
         .eq("task_date", todayStr)
         .order("clock_in_at", { ascending: true })
-        .then(({ data }) => { if (data) setTodayTasks(data) })
-        .catch(() => {})
+        .then(({ data }) => { if (data) setTodayTasks(data) }, () => {})
 
       fetchDashboardData().catch((error) => {
         console.log("Falling back to demo mode due to:", error.message)
@@ -629,8 +627,8 @@ export function DashboardTab() {
                 <XAxis dataKey="month" className="text-xs" />
                 <YAxis className="text-xs" tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`} />
                 <Tooltip 
-                  formatter={(value: number, name: string) => [
-                    name === 'revenue' ? `Ksh ${value.toLocaleString()}` : value,
+                  formatter={(value: any, name: any) => [
+                    name === 'revenue' ? `Ksh ${(Number(value) || 0).toLocaleString()}` : (value ?? 0),
                     name === 'revenue' ? 'Revenue' : 'Sales'
                   ]}
                   contentStyle={{ 
@@ -765,7 +763,7 @@ export function DashboardTab() {
                       ))}
                     </Pie>
                     <Tooltip
-                      formatter={(value: number) => [`Ksh ${value.toLocaleString()}`, 'Revenue']}
+                      formatter={(value: any) => [`Ksh ${(Number(value) || 0).toLocaleString()}`, 'Revenue']}
                       contentStyle={{
                         backgroundColor: 'hsl(var(--background))',
                         border: '1px solid hsl(var(--border))',

@@ -122,9 +122,9 @@ function PricingSettings() {
       return
     }
 
-    const { data: isValid, error: verifyError } = await (supabase.rpc("vnms_verify_owner_pin", {
+    const { data: isValid, error: verifyError } = await supabase.rpc("vnms_verify_owner_pin", {
       p_pin: pin,
-    }) as any)
+    })
     setVerifyingPin(false)
 
     if (verifyError) {
@@ -480,7 +480,7 @@ function OwnerPinCard() {
       return
     }
     ;(async () => {
-      const { data, error } = await (supabase.rpc("vnms_is_owner_pin_configured") as any)
+      const { data, error } = await supabase.rpc("vnms_is_owner_pin_configured")
       if (error) {
         toast({ title: "Could not load PIN settings", description: error.message, variant: "destructive" })
       } else {
@@ -512,10 +512,10 @@ function OwnerPinCard() {
       return
     }
 
-    const { data, error } = await (supabase.rpc("vnms_set_owner_pin", {
+    const { data, error } = await supabase.rpc("vnms_set_owner_pin", {
       p_current_pin: currentPin || null,
       p_new_pin: newPin,
-    }) as any)
+    })
     setSaving(false)
 
     if (error) {

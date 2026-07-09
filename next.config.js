@@ -24,12 +24,6 @@ if (supabaseHostname) {
 }
 
 const nextConfig = {
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
-  typescript: {
-    ignoreBuildErrors: true,
-  },
   images: {
     remotePatterns,
   },

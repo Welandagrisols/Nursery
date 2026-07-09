@@ -145,12 +145,13 @@ function printReceipt(sale: ReceiptSale) {
 
 export function ReceiptModal({ sale, onClose }: Props) {
   if (!sale) return null
+  const s = sale
 
-  const unitPrice = sale.quantity > 0 ? (sale.total_amount / sale.quantity).toFixed(2) : "0"
+  const unitPrice = s.quantity > 0 ? (s.total_amount / s.quantity).toFixed(2) : "0"
 
   function handleWhatsApp() {
-    const text = encodeURIComponent(buildWhatsAppText(sale))
-    const phone = (sale.customer?.contact || "").replace(/\D/g, "")
+    const text = encodeURIComponent(buildWhatsAppText(s))
+    const phone = (s.customer?.contact || "").replace(/\D/g, "")
     const url = phone ? `https://wa.me/${phone}?text=${text}` : `https://wa.me/?text=${text}`
     window.open(url, "_blank")
   }

@@ -220,63 +220,30 @@ export function POSModal({ open, onClose, onSaleComplete }: Props) {
     setConfirming(true)
     try {
       const saleDate = new Date().toISOString().split("T")[0]
-      const stockAfterSale = availableStock - qty
-
-      // Reserve stock first; if stock changed since fetch, abort cleanly.
-      const { data: stockUpdateRows, error: stockUpdateError } = await (supabase.from("vnms_batches") as any)
-        .update({
-          quantity: stockAfterSale,
-          available_stock: stockAfterSale,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", batchId)
-        .eq("quantity", availableStock)
-        .select("id")
-
-      if (stockUpdateError) throw stockUpdateError
-      if (!stockUpdateRows || stockUpdateRows.length === 0) {
-        throw new Error("Stock changed before confirmation. Please retry the sale.")
-      }
-
-      const saleData: any = {
-        inventory_id: batchId,
-        batch_id: batchId,
-        batch_code: selectedBatch?.batch_code || null,
-        plant_name: selectedBatch?.plant_name,
-        customer_id: customerId === "walk-in" ? null : customerId,
-        customer_name: customerId === "walk-in" ? "Walk-in Customer" : (selectedCustomer?.name || ""),
-        customer_type: customerType,
-        quantity: qty,
-        unit_price: unitPrice,
-        total_amount: totalAmount,
-        payment_method: paymentMethod,
-        payment_reference: mpesaRef || null,
-        receipt_number: receiptNumber,
-        sale_date: saleDate,
-        notes: notes || null,
-        is_voided: false,
-      }
 
       if (!isDemoMode) {
-        const { error: saleError } = await supabase.from("vnms_sales").insert(saleData)
-        if (saleError) {
-          // Roll back stock reservation if sale insert fails.
-          await (supabase.from("vnms_batches") as any)
-            .update({
-              quantity: availableStock,
-              available_stock: availableStock,
-              updated_at: new Date().toISOString(),
-            })
-            .eq("id", batchId)
-            .eq("quantity", stockAfterSale)
-          throw saleError
-        }
-      }
-
-      if (selectedBookingId && selectedBookingId !== "none" && !isDemoMode) {
-        await (supabase.from("vnms_batch_bookings") as any)
-          .update({ status: "fulfilled", updated_at: new Date().toISOString() })
-          .eq("id", selectedBookingId)
+        // Single atomic server-side transaction: locks the batch row,
+        // checks stock, decrements it, inserts the sale, and marks the
+        // booking fulfilled — all or nothing, so a dropped connection
+        // can no longer leave stock decremented with no matching sale.
+        const { error: rpcError } = await supabase.rpc("record_sale_atomic", {
+          p_batch_id: batchId,
+          p_quantity: qty,
+          p_unit_price: unitPrice,
+          p_total_amount: totalAmount,
+          p_sale_date: saleDate,
+          p_customer_id: customerId === "walk-in" ? null : customerId,
+          p_customer_name: customerId === "walk-in" ? "Walk-in Customer" : (selectedCustomer?.name || ""),
+          p_customer_type: customerType,
+          p_payment_method: paymentMethod,
+          p_payment_reference: mpesaRef || null,
+          p_receipt_number: receiptNumber,
+          p_notes: notes || null,
+          p_batch_code: selectedBatch?.batch_code || null,
+          p_plant_name: selectedBatch?.plant_name || null,
+          p_booking_id: selectedBookingId && selectedBookingId !== "none" ? selectedBookingId : null,
+        })
+        if (rpcError) throw rpcError
       }
 
       toast({ title: "Sale recorded!", description: `${receiptNumber} — Ksh ${totalAmount.toLocaleString()}` })

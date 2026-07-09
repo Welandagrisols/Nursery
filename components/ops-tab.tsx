@@ -128,7 +128,7 @@ export function OpsTab() {
 
       const failed: string[] = []
       for (const table of tables) {
-        const { error } = await supabase.from(table).delete().neq("id", "00000000-0000-0000-0000-000000000000")
+        const { error } = await supabase.from(table as any).delete().neq("id", "00000000-0000-0000-0000-000000000000")
         if (error && error.code !== "42P01") {
           failed.push(table)
         }

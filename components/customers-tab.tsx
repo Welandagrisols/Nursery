@@ -109,7 +109,7 @@ export function CustomersTab() {
         .order("name", { ascending: true })
 
       if (error) throw error
-      setCustomers(data || [])
+      setCustomers((data as Customer[]) || [])
     } catch (error: any) {
       console.error("Error fetching customers:", error)
       toast({

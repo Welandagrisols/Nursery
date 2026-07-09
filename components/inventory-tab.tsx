@@ -746,6 +746,7 @@ export function InventoryTab() {
                         <img 
                           src={item.image_url} 
                           alt={item.plant_name}
+                          loading="lazy"
                           className="w-full h-24 sm:h-32 object-cover rounded-md border border-gray-200"
                           onError={(e) => {
                             e.currentTarget.style.display = 'none';
@@ -954,6 +955,7 @@ export function InventoryTab() {
                         <img 
                           src={item.image_url} 
                           alt={item.plant_name}
+                          loading="lazy"
                           className="w-full h-24 sm:h-32 object-cover rounded-md border border-gray-200"
                           onError={(e) => {
                             e.currentTarget.style.display = 'none';

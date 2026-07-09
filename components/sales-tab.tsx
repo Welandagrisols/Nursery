@@ -70,7 +70,7 @@ async function fetchSalesFromDB(limit: number): Promise<SaleData[]> {
     .order("sale_date", { ascending: false })
     .limit(limit + 1) // fetch one extra to detect if more exist
   if (error) throw error
-  return (data || []) as SaleData[]
+  return (data || []) as unknown as SaleData[]
 }
 
 export function SalesTab() {
